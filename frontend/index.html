@@ -3,14 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exam Project</title>
-
-    <link rel="stylesheet" href="style.css">
+    <title>Rover Control</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <main class="container">
+        <h1>Rover Control Panel</h1>
 
-    <h1>UP AND RUNNING??</h1>
+        <section class="card">
+            <h2>Login</h2>
 
-    <script src="app.js"></script>
+            <input id="username" type="text" placeholder="Username">
+            <input id="password" type="password" placeholder="Password">
+
+            <div class="buttons">
+                <button onclick="registerUser()">Register</button>
+                <button onclick="loginUser()">Login</button>
+            </div>
+
+            <p id="message"></p>
+        </section>
+
+        <section id="dashboard" class="card hidden">
+            <h2>Dashboard</h2>
+        </section>
+    </main>
+
+    <script src="/static/app.js"></script>
 </body>
 </html>

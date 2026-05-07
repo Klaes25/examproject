@@ -6,4 +6,5 @@ services:
       - "18765:18765"
     volumes:
       - ./backend/app:/app/app
+      - ./frontend:/frontend
     command: uvicorn app.main:app --host 0.0.0.0 --port 18765 --reload
