@@ -6,34 +6,44 @@
 #include "TemperatureSensor.h"
 #include "UltrasonicSensor.h"
 
-// NRF24 address
 const byte address[6] = "ROV01";
 
-// Radio receiver object
 RadioReceiver radio(A2, A1, address);
 
-// Rover settings
+// Motor settings
 const int MAX_SPEED = 255;
 const int ACCEL_STEP = 32;
 
 const int DEADZONE_ROVER = 80;
 const int DEADZONE_ARM = 80;
 
-// Safety settings
-const unsigned long SIGNAL_TIMEOUT = 500;
-const float OBSTACLE_DISTANCE_CM = 20.0;
+// Lower speed for autonomous driving
+const int AUTO_SPEED = 100;
+const int TURN_SPEED = 90;
 
-// Sensor update intervals
+// Obstacle settings
+const float OBSTACLE_DISTANCE_CM = 25.0;
+
+// Autonomous timing
+const unsigned long STOP_TIME = 250;
+const unsigned long DRIVE_SHORT_TIME = 600;
+const unsigned long CORRECT_LEFT_TIME = 350;
+
+// Sensor intervals
 const unsigned long DHT_INTERVAL = 2000;
-const unsigned long ULTRASONIC_INTERVAL = 100;
+const unsigned long ULTRASONIC_INTERVAL = 80;
 
-// Timing
+// Safety
+const unsigned long SIGNAL_TIMEOUT = 500;
+
 unsigned long lastReceiveTime = 0;
+unsigned long autoStateStartTime = 0;
 
-// Sensor packet sent back to controller
+bool autonomousMode = false;
+bool lastRoverButtonState = false;
+
 SensorPacket sensorData;
 
-// Motor controller
 MotorController motors(
   5, 7, 4,
   6, 3, 2,
@@ -41,7 +51,6 @@ MotorController motors(
   ACCEL_STEP
 );
 
-// Robot arm
 RobotArm arm(
   8,
   9,
@@ -49,28 +58,34 @@ RobotArm arm(
   A0
 );
 
-// DHT22 sensor
 TemperatureSensor temperatureSensor(
   A3,
   DHT22,
   DHT_INTERVAL
 );
 
-// Ultrasonic sensor
 UltrasonicSensor ultrasonic(
   A4,
   A5,
   ULTRASONIC_INTERVAL
 );
 
-void setup() {
+enum AutoState {
+  AUTO_FORWARD,
+  AUTO_STOP,
+  AUTO_TURN_RIGHT_UNTIL_CLEAR,
+  AUTO_DRIVE_SHORT,
+  AUTO_CORRECT_LEFT
+};
 
+AutoState autoState = AUTO_FORWARD;
+
+void setup() {
   Serial.begin(9600);
 
   motors.begin();
   arm.begin();
   radio.begin();
-
   temperatureSensor.begin();
   ultrasonic.begin();
 
@@ -80,34 +95,32 @@ void setup() {
 }
 
 void loop() {
-
-  // Update sensors
   temperatureSensor.update();
   ultrasonic.update();
 
-  // Save temperature into packet
-  sensorData.temperatureC =
-    temperatureSensor.getTemperature();
+  sensorData.temperatureC = temperatureSensor.getTemperature();
 
-  // Check for incoming controller data
   if (radio.available()) {
-
     radio.readData();
-
     lastReceiveTime = millis();
 
-    // Stop rover if obstacle is too close
-    if (
-      ultrasonic.isObstacleClose(
-        OBSTACLE_DISTANCE_CM
-      )
-    ) {
+    // Drive joystick button toggles autonomous mode
+    if (!lastRoverButtonState && radio.data.roverSW) {
+      autonomousMode = !autonomousMode;
 
       motors.stop();
+      autoState = AUTO_FORWARD;
+      autoStateStartTime = millis();
 
+      Serial.print("Autonomous mode: ");
+      Serial.println(autonomousMode ? "ON" : "OFF");
+    }
+
+    lastRoverButtonState = radio.data.roverSW;
+
+    if (autonomousMode) {
+      runAutonomousMode();
     } else {
-
-      // Drive rover
       motors.drive(
         radio.data.roverX,
         radio.data.roverY,
@@ -115,7 +128,7 @@ void loop() {
       );
     }
 
-    // Control robot arm
+    // Arm joystick button controls wrist toggle inside RobotArm class
     arm.control(
       radio.data.armX,
       radio.data.armY,
@@ -123,18 +136,76 @@ void loop() {
       DEADZONE_ARM
     );
 
-    // Send sensor data back
     radio.sendSensorData(sensorData);
   }
 
-  // Stop motors if signal lost
-  if (
-    millis() - lastReceiveTime >
-    SIGNAL_TIMEOUT
-  ) {
-
+  if (millis() - lastReceiveTime > SIGNAL_TIMEOUT) {
     motors.stop();
   }
 
   delay(20);
+}
+
+void runAutonomousMode() {
+  unsigned long now = millis();
+
+  switch (autoState) {
+
+    case AUTO_FORWARD:
+      // Drive forward until obstacle is detected
+      if (ultrasonic.isObstacleClose(OBSTACLE_DISTANCE_CM)) {
+        motors.stop();
+        autoState = AUTO_STOP;
+        autoStateStartTime = now;
+      } else {
+        motors.forward(AUTO_SPEED);
+      }
+      break;
+
+    case AUTO_STOP:
+      // Short stop before avoiding obstacle
+      motors.stop();
+
+      if (now - autoStateStartTime >= STOP_TIME) {
+        autoState = AUTO_TURN_RIGHT_UNTIL_CLEAR;
+        autoStateStartTime = now;
+      }
+      break;
+
+    case AUTO_TURN_RIGHT_UNTIL_CLEAR:
+      // Turn right slowly until the path is clear
+      if (ultrasonic.isObstacleClose(OBSTACLE_DISTANCE_CM)) {
+        motors.turnRight(TURN_SPEED);
+      } else {
+        autoState = AUTO_DRIVE_SHORT;
+        autoStateStartTime = now;
+      }
+      break;
+
+    case AUTO_DRIVE_SHORT:
+      // Drive a little forward after avoiding obstacle
+      if (ultrasonic.isObstacleClose(OBSTACLE_DISTANCE_CM)) {
+        motors.stop();
+        autoState = AUTO_STOP;
+        autoStateStartTime = now;
+      } else {
+        motors.forward(AUTO_SPEED);
+
+        if (now - autoStateStartTime >= DRIVE_SHORT_TIME) {
+          autoState = AUTO_CORRECT_LEFT;
+          autoStateStartTime = now;
+        }
+      }
+      break;
+
+    case AUTO_CORRECT_LEFT:
+      // Turn slightly left to return closer to original direction
+      motors.turnLeft(TURN_SPEED);
+
+      if (now - autoStateStartTime >= CORRECT_LEFT_TIME) {
+        autoState = AUTO_FORWARD;
+        autoStateStartTime = now;
+      }
+      break;
+  }
 }
