@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -18,7 +18,10 @@ app.mount("/static", StaticFiles(directory="/frontend"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:18888"],
+    allow_origins=[
+        "http://localhost:18765",
+        "http://127.0.0.1:18765",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,6 +35,30 @@ class LoginRequest(BaseModel):
     password: str
 
 
+def ensure_admin_user():
+    db: Session = SessionLocal()
+
+    admin_user = db.query(User).filter(
+        User.username == "admin"
+    ).first()
+
+    if not admin_user:
+        hashed_password = pwd_context.hash("admin")
+
+        new_admin = User(
+            username="admin",
+            password_hash=hashed_password
+        )
+
+        db.add(new_admin)
+        db.commit()
+
+    db.close()
+
+
+ensure_admin_user()
+
+
 @app.get("/")
 def root():
     return FileResponse("/frontend/index.html")
@@ -39,26 +66,7 @@ def root():
 
 @app.post("/register")
 def register(data: LoginRequest):
-    db: Session = SessionLocal()
-
-    existing_user = db.query(User).filter(
-        User.username == data.username
-    ).first()
-
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User already exists")
-
-    hashed_password = pwd_context.hash(data.password)
-
-    new_user = User(
-        username=data.username,
-        password_hash=hashed_password
-    )
-
-    db.add(new_user)
-    db.commit()
-
-    return {"message": "User created"}
+    raise HTTPException(status_code=403, detail="Registration is disabled")
 
 
 @app.post("/login")
@@ -70,9 +78,30 @@ def login(data: LoginRequest):
     ).first()
 
     if not user:
-        raise HTTPException(status_code=401, detail="Forkert login..")
+        db.close()
+        raise HTTPException(status_code=401, detail="Forkert login")
 
     if not pwd_context.verify(data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Forkert login..")
+        db.close()
+        raise HTTPException(status_code=401, detail="Forkert login")
 
-    return {"message": "Login sucess"}
+    db.close()
+
+    return {
+        "message": "Login successful",
+        "username": data.username
+    }
+
+@app.websocket("/ws/control")
+async def websocket_control(websocket: WebSocket):
+    await websocket.accept()
+    print("Browser connected to /ws/control")
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            print(f"Command received: {data}")
+            await websocket.send_text(f"Server received: {data}")
+
+    except WebSocketDisconnect:
+        print("Browser disconnected from /ws/control")
