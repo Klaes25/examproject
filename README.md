@@ -6,5 +6,7 @@ The rover has two brains. The motors and sensors runs on an Arduino Uno, and the
 ## Structure
 ![Block diagram](rover_blokdiagram.png)
 
-## Sources (source for code goes)
-Links to tutorials, documentation or stackoverflow posts we used
+## Sources
+
+### PiCore
+- [Increasing Raspberry Pi FPS with Python and OpenCV](https://pyimagesearch.com/2015/12/28/increasing-raspberry-pi-fps-with-python-and-opencv/) - CameraManager class and threaded capture loop adapted from this tutorial
