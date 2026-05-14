@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rover Control</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <main class="container">
+
+        <h1>Rover Control Panel</h1>
+
+        <section class="card" id="login-card">
+
+            <h2>Login</h2>
+
+            <input
+                id="username"
+                type="text"
+                placeholder="Username"
+            >
+
+            <input
+                id="password"
+                type="password"
+                placeholder="Password"
+            >
+
+            <div class="buttons">
+                <button onclick="loginUser()">
+                    Login
+                </button>
+            </div>
+
+            <p id="message"></p>
+
+        </section>
+
+        <section id="dashboard" class="card hidden">
+
+            <h2>Dashboard</h2>
+
+            <p>Connected as admin.</p>
+
+            <p id="ws-status">
+                WebSocket: not connected
+            </p>
+
+            <p>Latest server message:</p>
+
+            <p id="last-command">
+                None
+            </p>
+
+            <div class="buttons">
+
+                <button onclick="sendCommand('forward')">
+                    Forward
+                </button>
+
+                <button onclick="sendCommand('left')">
+                    Left
+                </button>
+
+                <button onclick="sendCommand('right')">
+                    Right
+                </button>
+
+                <button onclick="sendCommand('stop')">
+                    Stop
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="/static/app.js"></script>
+
+</body>
+</html>

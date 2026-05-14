@@ -1,4 +1,5 @@
 let controlSocket = null;
+let roverStatusInterval = null;
 
 function connectControlWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
@@ -13,7 +14,14 @@ function connectControlWebSocket() {
 
     controlSocket.onmessage = function (event) {
         console.log("Message from server:", event.data);
-        document.getElementById("last-command").textContent = event.data;
+
+        try {
+            const data = JSON.parse(event.data);
+            document.getElementById("last-command").textContent =
+                JSON.stringify(data, null, 2);
+        } catch {
+            document.getElementById("last-command").textContent = event.data;
+        }
     };
 
     controlSocket.onclose = function () {
@@ -34,7 +42,36 @@ function sendCommand(command) {
         return;
     }
 
-    controlSocket.send(command);
+    controlSocket.send(JSON.stringify({
+        type: "command",
+        command: command,
+        source: "frontend"
+    }));
+}
+
+async function updateRoverStatus() {
+    try {
+        const response = await fetch("/api/rover/status");
+        const data = await response.json();
+
+        const statusText = data.connected
+            ? `Rover: ONLINE (${data.status})`
+            : "Rover: OFFLINE";
+
+        document.getElementById("rover-status").textContent = statusText;
+        document.getElementById("rover-device").textContent =
+            `Device: ${data.device || "unknown"}`;
+
+        document.getElementById("rover-last-seen").textContent =
+            data.seconds_since_last_seen === null
+                ? "Last seen: never"
+                : `Last seen: ${data.seconds_since_last_seen}s ago`;
+
+    } catch (error) {
+        console.error(error);
+        document.getElementById("rover-status").textContent =
+            "Rover: status API error";
+    }
 }
 
 async function loginUser() {
@@ -59,22 +96,20 @@ async function loginUser() {
             document.getElementById("message").textContent =
                 "Login successful";
 
-            document.getElementById("login-card")
-                .classList.add("hidden");
-
-            document.getElementById("dashboard")
-                .classList.remove("hidden");
+            document.getElementById("login-card").classList.add("hidden");
+            document.getElementById("dashboard").classList.remove("hidden");
 
             connectControlWebSocket();
+            updateRoverStatus();
+
+            roverStatusInterval = setInterval(updateRoverStatus, 3000);
 
         } else {
-            document.getElementById("message").textContent =
-                data.detail;
+            document.getElementById("message").textContent = data.detail;
         }
 
     } catch (error) {
         console.error(error);
-
         document.getElementById("message").textContent =
             "Connection error";
     }

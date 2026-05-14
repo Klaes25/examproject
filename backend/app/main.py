@@ -10,9 +10,20 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app.models import Base, User
 
+import json
+import time
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+latest_rover_status = {
+    "connected": False,
+    "status": "unknown",
+    "device": None,
+    "last_seen": None,
+    "last_message": None
+}
 
 app.mount("/static", StaticFiles(directory="/frontend"), name="static")
 
@@ -64,6 +75,23 @@ def root():
     return FileResponse("/frontend/index.html")
 
 
+@app.get("/api/rover/status")
+def get_rover_status():
+    now = time.time()
+    last_seen = latest_rover_status["last_seen"]
+
+    connected = False
+
+    if last_seen is not None and now - last_seen < 15:
+        connected = True
+
+    return {
+        **latest_rover_status,
+        "connected": connected,
+        "seconds_since_last_seen": None if last_seen is None else round(now - last_seen, 1)
+    }
+
+
 @app.post("/register")
 def register(data: LoginRequest):
     raise HTTPException(status_code=403, detail="Registration is disabled")
@@ -92,16 +120,35 @@ def login(data: LoginRequest):
         "username": data.username
     }
 
+
 @app.websocket("/ws/control")
 async def websocket_control(websocket: WebSocket):
     await websocket.accept()
-    print("Browser connected to /ws/control")
+    print("Client connected to /ws/control")
 
     try:
         while True:
             data = await websocket.receive_text()
             print(f"Command received: {data}")
-            await websocket.send_text(f"Server received: {data}")
+
+            try:
+                parsed = json.loads(data)
+
+                if parsed.get("type") == "status":
+                    latest_rover_status["connected"] = True
+                    latest_rover_status["status"] = parsed.get("status")
+                    latest_rover_status["device"] = parsed.get("device")
+                    latest_rover_status["last_seen"] = time.time()
+                    latest_rover_status["last_message"] = parsed
+
+            except json.JSONDecodeError:
+                pass
+
+            await websocket.send_json({
+                "type": "ack",
+                "message": "Server received data",
+                "data": data
+            })
 
     except WebSocketDisconnect:
-        print("Browser disconnected from /ws/control")
+        print("Client disconnected from /ws/control")

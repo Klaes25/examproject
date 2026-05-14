@@ -16,22 +16,11 @@
 
             <h2>Login</h2>
 
-            <input
-                id="username"
-                type="text"
-                placeholder="Username"
-            >
-
-            <input
-                id="password"
-                type="password"
-                placeholder="Password"
-            >
+            <input id="username" type="text" placeholder="Username">
+            <input id="password" type="password" placeholder="Password">
 
             <div class="buttons">
-                <button onclick="loginUser()">
-                    Login
-                </button>
+                <button onclick="loginUser()">Login</button>
             </div>
 
             <p id="message"></p>
@@ -44,34 +33,36 @@
 
             <p>Connected as admin.</p>
 
-            <p id="ws-status">
-                WebSocket: not connected
-            </p>
+            <hr>
+
+            <h3>Rover Status</h3>
+
+            <p id="rover-status">Rover: unknown</p>
+            <p id="rover-device">Device: unknown</p>
+            <p id="rover-last-seen">Last seen: unknown</p>
+
+            <hr>
+
+            <h3>Live Feed</h3>
+
+            <img
+                src="http://localhost:8090/video"
+                alt="Rover live feed"
+                style="width: 100%; max-width: 480px; border-radius: 8px;"
+            >
+
+            <hr>
+
+            <p id="ws-status">WebSocket: not connected</p>
 
             <p>Latest server message:</p>
-
-            <p id="last-command">
-                None
-            </p>
+            <p id="last-command">None</p>
 
             <div class="buttons">
-
-                <button onclick="sendCommand('forward')">
-                    Forward
-                </button>
-
-                <button onclick="sendCommand('left')">
-                    Left
-                </button>
-
-                <button onclick="sendCommand('right')">
-                    Right
-                </button>
-
-                <button onclick="sendCommand('stop')">
-                    Stop
-                </button>
-
+                <button onclick="sendCommand('forward')">Forward</button>
+                <button onclick="sendCommand('left')">Left</button>
+                <button onclick="sendCommand('right')">Right</button>
+                <button onclick="sendCommand('stop')">Stop</button>
             </div>
 
         </section>
