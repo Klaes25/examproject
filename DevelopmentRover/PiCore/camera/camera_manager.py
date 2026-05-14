@@ -1,35 +1,29 @@
-from picamera.array import PiRGBArray
-from picamera import PiCamera
+from picamera2 import Picamera2
 from threading import Thread
 
 
 class CameraManager:
 
     def __init__(self, resolution=(320, 240), framerate=32):
-        self.camera = PiCamera()
-        self.camera.resolution = resolution
-        self.camera.framerate = framerate
-        self.rawCapture = PiRGBArray(self.camera, size=resolution)
-        self.stream = self.camera.capture_continuous(self.rawCapture,
-            format="bgr", use_video_port=True)
+        self.camera = Picamera2()
+        config = self.camera.create_video_configuration(
+            main={"size": resolution, "format": "RGB888"},
+            controls={"FrameRate": framerate}
+        )
+        self.camera.configure(config)
         self.frame = None
         self.stopped = False
 
     def start(self):
+        self.camera.start()
         Thread(target=self.update, args=()).start()
         return self
 
-    # capture loop runs in background thread
     def update(self):
-        for f in self.stream:
-            self.frame = f.array
-            self.rawCapture.truncate(0)  # clear buffer before next frame
-
-            if self.stopped:
-                self.stream.close()
-                self.rawCapture.close()
-                self.camera.close()
-                return
+        while not self.stopped:
+            self.frame = self.camera.capture_array()
+        self.camera.stop()
+        self.camera.close()
 
     def get_frame(self):
         return self.frame
