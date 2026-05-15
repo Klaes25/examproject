@@ -2,6 +2,7 @@
 
 import time
 from camera.camera_manager import CameraManager
+from camera.video_stream import VideoStream
 
 
 def main():
@@ -9,6 +10,9 @@ def main():
     camera = CameraManager(resolution=(320, 240), framerate=32).start()
 
     time.sleep(2.0)
+
+    print("[INFO] starting video stream...")
+    stream = VideoStream(camera, port=8000).start()
 
     print("[INFO] running. press CTRL+C to stop.")
 
@@ -24,6 +28,7 @@ def main():
     except KeyboardInterrupt:
         print("[INFO] stopping...")
 
+    stream.stop()
     camera.stop()
 
 
