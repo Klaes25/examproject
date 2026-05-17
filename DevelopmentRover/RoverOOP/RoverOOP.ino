@@ -22,7 +22,7 @@ const int AUTO_SPEED = 100;
 const int TURN_SPEED = 90;
 
 // Obstacle settings
-const float OBSTACLE_DISTANCE_CM = 25.0;
+const float OBSTACLE_DISTANCE_CM = 35.0;
 
 // Autonomous timing
 const unsigned long STOP_TIME = 250;
@@ -95,6 +95,8 @@ void setup() {
 }
 
 void loop() {
+  readSerialControl();
+
   temperatureSensor.update();
   ultrasonic.update();
 
@@ -118,9 +120,7 @@ void loop() {
 
     lastRoverButtonState = radio.data.roverSW;
 
-    if (autonomousMode) {
-      runAutonomousMode();
-    } else {
+    if (!autonomousMode) {
       motors.drive(
         radio.data.roverX,
         radio.data.roverY,
@@ -137,6 +137,10 @@ void loop() {
     );
 
     radio.sendSensorData(sensorData);
+  }
+
+  if (autonomousMode) {
+    runAutonomousMode();
   }
 
   if (millis() - lastReceiveTime > SIGNAL_TIMEOUT) {
@@ -158,7 +162,7 @@ void runAutonomousMode() {
         autoState = AUTO_STOP;
         autoStateStartTime = now;
       } else {
-        motors.forward(AUTO_SPEED);
+        motors.backward(AUTO_SPEED); //actually forward motors are reversed
       }
       break;
 
@@ -189,7 +193,7 @@ void runAutonomousMode() {
         autoState = AUTO_STOP;
         autoStateStartTime = now;
       } else {
-        motors.forward(AUTO_SPEED);
+        motors.backward(AUTO_SPEED); //actually forward motors are reversed
 
         if (now - autoStateStartTime >= DRIVE_SHORT_TIME) {
           autoState = AUTO_CORRECT_LEFT;
@@ -207,5 +211,65 @@ void runAutonomousMode() {
         autoStateStartTime = now;
       }
       break;
+  }
+}
+
+void readSerialControl() {
+  if (Serial.available()) {
+    String line = Serial.readStringUntil('\n');
+
+    if (line.startsWith("CONTROL:")) {
+      line.remove(0, 8);
+
+      int values[6];
+      int index = 0;
+
+      while (line.length() > 0 && index < 6) {
+        int commaIndex = line.indexOf(',');
+
+        if (commaIndex == -1) {
+          values[index++] = line.toInt();
+          break;
+        }
+
+        values[index++] = line.substring(0, commaIndex).toInt();
+        line.remove(0, commaIndex + 1);
+      }
+
+      if (index == 6) {
+        bool serialRoverSW = values[2];
+        bool serialArmSW = values[5];
+
+        // Toggle autonomous mode
+        if (!lastRoverButtonState && serialRoverSW) {
+          autonomousMode = !autonomousMode;
+
+          motors.stop();
+          autoState = AUTO_FORWARD;
+          autoStateStartTime = millis();
+
+          Serial.print("Autonomous mode: ");
+          Serial.println(autonomousMode ? "ON" : "OFF");
+        }
+
+        lastRoverButtonState = serialRoverSW;
+
+        // Manual drive only when autonomous mode is OFF
+        if (!autonomousMode) {
+          motors.drive(values[0], values[1], DEADZONE_ROVER);
+        }
+
+        // Arm control always works
+        arm.control(
+          values[3],
+          values[4],
+          serialArmSW,
+          DEADZONE_ARM
+        );
+
+        // Prevent signal timeout from stopping the rover
+        lastReceiveTime = millis();
+      }
+    }
   }
 }
