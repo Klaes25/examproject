@@ -25,6 +25,8 @@ latest_rover_status = {
     "last_message": None
 }
 
+rover_websocket = None
+
 app.mount("/static", StaticFiles(directory="/frontend"), name="static")
 
 app.add_middleware(
@@ -123,32 +125,75 @@ def login(data: LoginRequest):
 
 @app.websocket("/ws/control")
 async def websocket_control(websocket: WebSocket):
+    global rover_websocket
+
     await websocket.accept()
     print("Client connected to /ws/control")
 
     try:
         while True:
             data = await websocket.receive_text()
-            print(f"Command received: {data}")
+            print(f"Data received: {data}")
 
             try:
                 parsed = json.loads(data)
 
                 if parsed.get("type") == "status":
+                    rover_websocket = websocket
+
                     latest_rover_status["connected"] = True
                     latest_rover_status["status"] = parsed.get("status")
                     latest_rover_status["device"] = parsed.get("device")
                     latest_rover_status["last_seen"] = time.time()
                     latest_rover_status["last_message"] = parsed
 
+                    await websocket.send_json({
+                        "type": "ack",
+                        "message": "Server received data",
+                        "data": data
+                    })
+
+                elif parsed.get("type") == "sensor_data":
+                    latest_rover_status["last_seen"] = time.time()
+                    latest_rover_status["last_message"] = parsed
+
+                    print("Sensor data:", parsed)
+
+                    await websocket.send_json({
+                        "type": "ack",
+                        "message": "Server received data",
+                        "data": data
+                    })
+
+                elif parsed.get("type") in ["drive", "arm", "stop"]:
+                    if rover_websocket is not None:
+                        await rover_websocket.send_json(parsed)
+
+                        await websocket.send_json({
+                            "type": "ack",
+                            "message": "Server received data",
+                            "data": data
+                        })
+                    else:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": "No rover connected"
+                        })
+
+                else:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Unknown message type",
+                        "data": parsed
+                    })
+
             except json.JSONDecodeError:
                 pass
 
-            await websocket.send_json({
-                "type": "ack",
-                "message": "Server received data",
-                "data": data
-            })
-
     except WebSocketDisconnect:
         print("Client disconnected from /ws/control")
+
+        if websocket == rover_websocket:
+            rover_websocket = None
+            latest_rover_status["connected"] = False
+            latest_rover_status["status"] = "offline"

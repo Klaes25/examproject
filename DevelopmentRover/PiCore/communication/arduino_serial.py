@@ -68,18 +68,26 @@ class ArduinoSerial:
             return False
 
         # build the message string
-        message = f"{cmd}:{value}\n"
+    try:   
+        message = (
+            f"CONTROL:"
+            f"{packet['roverX']},"
+            f"{packet['roverY']},"
+            f"{int(packet['roverSW'])},"
+            f"{packet['armX']},"
+            f"{packet['armY']},"
+            f"{int(packet['armSW'])}\n"
+        )
         
-        try:
-            with self.lock:
-                self.ser.write(message.encode())
-            # uncomment this to see every command sent
-            # print(f"sent: {message.strip()}")
-            return True
+        with self.lock:
+            self.ser.write(message.encode())
             
-        except Exception as e:
-            print(f"Send error: {e}")
-            return False
+        print(f"Sent to Arduino: {message.strip()}")
+        return True
+
+    except Exception as e:
+        print(f"Send error: {e}")
+        return False
 
     # this runs in a thread and reads lines from arduino constantly
     def read_loop(self):

@@ -42,11 +42,102 @@ function sendCommand(command) {
         return;
     }
 
-    controlSocket.send(JSON.stringify({
-        type: "command",
-        command: command,
-        source: "frontend"
-    }));
+    controlSocket.send(JSON.stringify(command));
+
+function moveForward() {
+    sendCommand({
+        type: "drive",
+        roverX: 512,
+        roverY: 1023,
+        roverSW: false
+    });
+}
+
+function moveBackward() {
+    sendCommand({
+        type: "drive",
+        roverX: 512,
+        roverY: 0,
+        roverSW: false
+    });
+}
+
+function turnLeft() {
+    sendCommand({
+        type: "drive",
+        roverX: 0,
+        roverY: 512,
+        roverSW: false
+    });
+}
+
+function turnRight() {
+    sendCommand({
+        type: "drive",
+        roverX: 1023,
+        roverY: 512,
+        roverSW: false
+    });
+}
+
+function stopRover() {
+    sendCommand({
+        type: "stop"
+    });
+}
+
+function toggleAutonomous() {
+    sendCommand({
+        type: "drive",
+        roverX: 512,
+        roverY: 512,
+        roverSW: true
+    });
+}
+
+function moveArmLeft() {
+    sendCommand({
+        type: "arm",
+        armX: 0,
+        armY: 512,
+        armSW: false
+    });
+}
+
+function moveArmRight() {
+    sendCommand({
+        type: "arm",
+        armX: 1023,
+        armY: 512,
+        armSW: false
+    });
+}
+
+function moveArmForward() {
+    sendCommand({
+        type: "arm",
+        armX: 512,
+        armY: 1023,
+        armSW: false
+    });
+}
+
+function moveArmBackward() {
+    sendCommand({
+        type: "arm",
+        armX: 512,
+        armY: 0,
+        armSW: false
+    });
+}
+
+function toggleWrist() {
+    sendCommand({
+        type: "arm",
+        armX: 512,
+        armY: 512,
+        armSW: true
+    });
 }
 
 async function updateRoverStatus() {

@@ -58,12 +58,26 @@
             <p>Latest server message:</p>
             <p id="last-command">None</p>
 
-            <div class="buttons">
-                <button onclick="sendCommand('forward')">Forward</button>
-                <button onclick="sendCommand('left')">Left</button>
-                <button onclick="sendCommand('right')">Right</button>
-                <button onclick="sendCommand('stop')">Stop</button>
-            </div>
+<div class="buttons">
+    <button onclick="moveForward()">Forward</button>
+    <button onclick="moveBackward()">Backward</button>
+    <button onclick="turnLeft()">Left</button>
+    <button onclick="turnRight()">Right</button>
+    <button onclick="stopRover()">Stop</button>
+    <button onclick="toggleAutonomous()">Autonomous</button>
+</div>
+
+<hr>
+
+<h3>Robot Arm</h3>
+
+<div class="buttons">
+    <button onclick="moveArmForward()">Arm Forward</button>
+    <button onclick="moveArmBackward()">Arm Backward</button>
+    <button onclick="moveArmLeft()">Arm Left</button>
+    <button onclick="moveArmRight()">Arm Right</button>
+    <button onclick="toggleWrist()">Wrist</button>
+</div>
 
         </section>
 
