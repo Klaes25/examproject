@@ -20,12 +20,23 @@ private:
   void setMotorB(int speedVal);
 
 public:
-  MotorController(int ena, int in1, int in2, int enb, int in3, int in4, int maxSpeed, int accelStep);
+  MotorController(
+    int ena,
+    int in1,
+    int in2,
+    int enb,
+    int in3,
+    int in4,
+    int maxSpeed,
+    int accelStep
+  );
 
   void begin() override;
+
   void drive(int xRaw, int yRaw, int deadzone);
 
   void forward(int speed);
+  void backward(int speed);
   void turnRight(int speed);
   void turnLeft(int speed);
 

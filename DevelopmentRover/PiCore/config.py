@@ -1,5 +1,5 @@
 # Public IP address or domain name of your server
-SERVER_IP = "YOUR_SERVER_IP"
+SERVER_IP = "100.116.69.43"
 
 # Port exposed by docker-compose
 SERVER_PORT = 18765
@@ -11,10 +11,10 @@ SERVER_WS_PATH = "/ws/control"
 SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}{SERVER_WS_PATH}"
 
 # Serial port to the Arduino Uno
-SERIAL_PORT = "/dev/ttyACM0"
+ARDUINO_PORT = "/dev/ttyACM0"
 
 # Serial baud rate (must match Serial.begin)
-SERIAL_BAUDRATE = 9600
+ARDUINO_BAUD = 9600
 
 # Delay between reconnect attempts (seconds)
-RECONNECT_DELAY = 3
+SERIAL_RETRY_DELAY = 3
