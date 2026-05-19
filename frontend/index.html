@@ -48,7 +48,7 @@
             <img
                 src="http://100.116.69.43:8000/stream.mjpg"
                 alt="Rover live feed"
-                style="width: 100%; max-width: 480px; border-radius: 8px;"
+                style="width: 100%; max-width: 480px; border-radius: 8px; transform: rotate(180deg);"
             >
 
             <hr>
@@ -108,19 +108,35 @@
 
             <div class="buttons">
 
-                <button onclick="moveArmForward()">
+                <button
+                    onmousedown="moveArmForward()"
+                    onmouseup="stopArm()"
+                    onmouseleave="stopArm()"
+                >
                     Arm Forward
                 </button>
 
-                <button onclick="moveArmBackward()">
+                <button
+                    onmousedown="moveArmBackward()"
+                    onmouseup="stopArm()"
+                    onmouseleave="stopArm()"
+                >
                     Arm Backward
                 </button>
 
-                <button onclick="moveArmLeft()">
+                <button
+                    onmousedown="moveArmLeft()"
+                    onmouseup="stopArm()"
+                    onmouseleave="stopArm()"
+                >
                     Arm Left
                 </button>
 
-                <button onclick="moveArmRight()">
+                <button
+                    onmousedown="moveArmRight()"
+                    onmouseup="stopArm()"
+                    onmouseleave="stopArm()"
+                >
                     Arm Right
                 </button>
 

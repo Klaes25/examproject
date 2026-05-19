@@ -1,7 +1,11 @@
 let controlSocket = null;
 let roverStatusInterval = null;
+
 let driveInterval = null;
 let activeDriveCommand = null;
+
+let armInterval = null;
+let activeArmCommand = null;
 
 function connectControlWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
@@ -70,11 +74,40 @@ function stopDrive() {
     stopRover();
 }
 
+function startArm(command) {
+    activeArmCommand = command;
+    sendCommand(activeArmCommand);
+
+    if (armInterval !== null) {
+        clearInterval(armInterval);
+    }
+
+    armInterval = setInterval(function () {
+        sendCommand(activeArmCommand);
+    }, 100);
+}
+
+function stopArm() {
+    if (armInterval !== null) {
+        clearInterval(armInterval);
+        armInterval = null;
+    }
+
+    activeArmCommand = null;
+
+    sendCommand({
+        type: "arm",
+        armX: 512,
+        armY: 512,
+        armSW: false
+    });
+}
+
 function moveForward() {
     startDrive({
         type: "drive",
         roverX: 512,
-        roverY: 1023,
+        roverY: 0,
         roverSW: false
     });
 }
@@ -83,7 +116,7 @@ function moveBackward() {
     startDrive({
         type: "drive",
         roverX: 512,
-        roverY: 0,
+        roverY: 1023,
         roverSW: false
     });
 }
@@ -121,17 +154,8 @@ function toggleAutonomous() {
     });
 }
 
-function moveArmLeft() {
-    sendCommand({
-        type: "arm",
-        armX: 0,
-        armY: 512,
-        armSW: false
-    });
-}
-
-function moveArmRight() {
-    sendCommand({
+function moveArmForward() {
+    startArm({
         type: "arm",
         armX: 1023,
         armY: 512,
@@ -139,8 +163,17 @@ function moveArmRight() {
     });
 }
 
-function moveArmForward() {
-    sendCommand({
+function moveArmBackward() {
+    startArm({
+        type: "arm",
+        armX: 0,
+        armY: 512,
+        armSW: false
+    });
+}
+
+function moveArmLeft() {
+    startArm({
         type: "arm",
         armX: 512,
         armY: 1023,
@@ -148,8 +181,8 @@ function moveArmForward() {
     });
 }
 
-function moveArmBackward() {
-    sendCommand({
+function moveArmRight() {
+    startArm({
         type: "arm",
         armX: 512,
         armY: 0,
