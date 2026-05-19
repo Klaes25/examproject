@@ -43,7 +43,7 @@ function sendCommand(command) {
     }
 
     controlSocket.send(JSON.stringify(command));
-
+    }
 function moveForward() {
     sendCommand({
         type: "drive",

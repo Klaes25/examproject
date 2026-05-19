@@ -62,13 +62,12 @@ class ArduinoSerial:
         return self.ser.is_open
 
     # send a command to the arduino
-    def send_command(self, cmd, value=""):
-        if not self.is_connected():
-            print("Warning: Tried to send command but Arduino is not connected.")
-            return False
+    def send_command(self, packet):
+    if not self.is_connected():
+        print("Warning: Tried to send command but Arduino is not connected.")
+        return False
 
-        # build the message string
-    try:   
+    try:
         message = (
             f"CONTROL:"
             f"{packet['roverX']},"
@@ -78,10 +77,10 @@ class ArduinoSerial:
             f"{packet['armY']},"
             f"{int(packet['armSW'])}\n"
         )
-        
+
         with self.lock:
             self.ser.write(message.encode())
-            
+
         print(f"Sent to Arduino: {message.strip()}")
         return True
 
