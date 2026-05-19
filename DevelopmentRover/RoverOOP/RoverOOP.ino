@@ -82,6 +82,7 @@ AutoState autoState = AUTO_FORWARD;
 
 void setup() {
   Serial.begin(9600);
+  Serial.setTimeout(20);
 
   motors.begin();
   arm.begin();
