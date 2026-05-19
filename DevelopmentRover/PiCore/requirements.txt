@@ -1,0 +1,4 @@
+picamera2
+simplejpeg
+pyserial
+websocket-client

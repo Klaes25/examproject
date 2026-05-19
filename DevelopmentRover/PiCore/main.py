@@ -1,6 +1,7 @@
 import time
 
 import config
+import sensor_db
 
 from camera.camera_manager import CameraManager
 from camera.video_stream import VideoStream
@@ -11,6 +12,8 @@ from communication.arduino_serial import ArduinoSerial
 
 
 def main():
+    sensor_db.init_db()
+
     print("[INFO] connecting to Arduino...")
     arduino = ArduinoSerial(config)
 
@@ -47,6 +50,12 @@ def main():
             
             temperature = arduino.get_temperature()
             distance = arduino.get_distance_cm()
+
+            if temperature is not None:
+                try:
+                    sensor_db.log_temperature(temperature)
+                except Exception as e:
+                    print(f"[WARNING] Failed to log temperature: {e}")
 
             server.send_sensor_data(
                 temperature=temperature,

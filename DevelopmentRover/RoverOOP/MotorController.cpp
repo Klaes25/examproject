@@ -1,8 +1,12 @@
 #include "MotorController.h"
 
 MotorController::MotorController(
-  int ena, int in1, int in2,
-  int enb, int in3, int in4,
+  int ena,
+  int in1,
+  int in2,
+  int enb,
+  int in3,
+  int in4,
   int maxSpeed,
   int accelStep
 )
@@ -19,7 +23,6 @@ void MotorController::begin() {
   pinMode(ENA, OUTPUT);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
-
   pinMode(ENB, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
@@ -28,17 +31,15 @@ void MotorController::begin() {
 }
 
 void MotorController::drive(int xRaw, int yRaw, int deadzone) {
+
   int x = map(xRaw, 0, 1023, -maxSpeed, maxSpeed);
   int y = map(yRaw, 0, 1023, -maxSpeed, maxSpeed);
 
   if (abs(x) < deadzone) x = 0;
   if (abs(y) < deadzone) y = 0;
 
-  int targetLeft = y + x;
-  int targetRight = y - x;
-
-  targetLeft = constrain(targetLeft, -maxSpeed, maxSpeed);
-  targetRight = constrain(targetRight, -maxSpeed, maxSpeed);
+  int targetLeft = constrain(y + x, -maxSpeed, maxSpeed);
+  int targetRight = constrain(y - x, -maxSpeed, maxSpeed);
 
   currentLeftMotor = rampMotor(currentLeftMotor, targetLeft);
   currentRightMotor = rampMotor(currentRightMotor, targetRight);
@@ -47,74 +48,86 @@ void MotorController::drive(int xRaw, int yRaw, int deadzone) {
   setMotorB(currentRightMotor);
 }
 
-void MotorController::forward(int speedVal) {
-  speedVal = constrain(speedVal, 0, maxSpeed);
+void MotorController::forward(int speed) {
 
-  currentLeftMotor = speedVal;
-  currentRightMotor = speedVal;
+  int s = constrain(speed, 0, maxSpeed);
 
-  setMotorA(currentLeftMotor);
-  setMotorB(currentRightMotor);
-}
-
-void MotorController::backward(int speedVal) {
-  speedVal = constrain(speedVal, 0, maxSpeed);
-  
-  currentLeftMotor = -speedVal;
-  currentRightMotor = -speedVal;
-  
-  setMotorA(currentLeftMotor);
-  setMotorB(currentRightMotor);
-}
-
-void MotorController::turnRight(int speedVal) {
-  speedVal = constrain(speedVal, 0, maxSpeed);
-
-  currentLeftMotor = speedVal;
-  currentRightMotor = -speedVal;
+  currentLeftMotor = s;
+  currentRightMotor = s;
 
   setMotorA(currentLeftMotor);
   setMotorB(currentRightMotor);
 }
 
-void MotorController::turnLeft(int speedVal) {
-  speedVal = constrain(speedVal, 0, maxSpeed);
+void MotorController::backward(int speed) {
 
-  currentLeftMotor = -speedVal;
-  currentRightMotor = speedVal;
+  int s = constrain(speed, 0, maxSpeed);
+
+  currentLeftMotor = -s;
+  currentRightMotor = -s;
+
+  setMotorA(currentLeftMotor);
+  setMotorB(currentRightMotor);
+}
+
+void MotorController::turnRight(int speed) {
+
+  int s = constrain(speed, 0, maxSpeed);
+
+  currentLeftMotor = s;
+  currentRightMotor = -s;
+
+  setMotorA(currentLeftMotor);
+  setMotorB(currentRightMotor);
+}
+
+void MotorController::turnLeft(int speed) {
+
+  int s = constrain(speed, 0, maxSpeed);
+
+  currentLeftMotor = -s;
+  currentRightMotor = s;
 
   setMotorA(currentLeftMotor);
   setMotorB(currentRightMotor);
 }
 
 int MotorController::rampMotor(int currentSpeed, int targetSpeed) {
+
   if (currentSpeed < targetSpeed) {
+
     currentSpeed += accelStep;
 
-    if (currentSpeed > targetSpeed) {
+    if (currentSpeed > targetSpeed)
       currentSpeed = targetSpeed;
-    }
+
   } else if (currentSpeed > targetSpeed) {
+
     currentSpeed -= accelStep;
 
-    if (currentSpeed < targetSpeed) {
+    if (currentSpeed < targetSpeed)
       currentSpeed = targetSpeed;
-    }
   }
 
   return currentSpeed;
 }
 
 void MotorController::setMotorA(int speedVal) {
+
   if (speedVal > 0) {
+
     digitalWrite(IN1, HIGH);
     digitalWrite(IN2, LOW);
     analogWrite(ENA, speedVal);
+
   } else if (speedVal < 0) {
+
     digitalWrite(IN1, LOW);
     digitalWrite(IN2, HIGH);
     analogWrite(ENA, -speedVal);
+
   } else {
+
     digitalWrite(IN1, LOW);
     digitalWrite(IN2, LOW);
     analogWrite(ENA, 0);
@@ -122,15 +135,21 @@ void MotorController::setMotorA(int speedVal) {
 }
 
 void MotorController::setMotorB(int speedVal) {
+
   if (speedVal > 0) {
+
     digitalWrite(IN3, HIGH);
     digitalWrite(IN4, LOW);
     analogWrite(ENB, speedVal);
+
   } else if (speedVal < 0) {
+
     digitalWrite(IN3, LOW);
     digitalWrite(IN4, HIGH);
     analogWrite(ENB, -speedVal);
+
   } else {
+
     digitalWrite(IN3, LOW);
     digitalWrite(IN4, LOW);
     analogWrite(ENB, 0);
@@ -138,6 +157,7 @@ void MotorController::setMotorB(int speedVal) {
 }
 
 void MotorController::stop() {
+
   currentLeftMotor = 0;
   currentRightMotor = 0;
 

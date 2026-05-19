@@ -1,5 +1,7 @@
 let controlSocket = null;
 let roverStatusInterval = null;
+let driveInterval = null;
+let activeDriveCommand = null;
 
 function connectControlWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
@@ -43,9 +45,33 @@ function sendCommand(command) {
     }
 
     controlSocket.send(JSON.stringify(command));
+}
+
+function startDrive(command) {
+    activeDriveCommand = command;
+    sendCommand(activeDriveCommand);
+
+    if (driveInterval !== null) {
+        clearInterval(driveInterval);
     }
+
+    driveInterval = setInterval(function () {
+        sendCommand(activeDriveCommand);
+    }, 100);
+}
+
+function stopDrive() {
+    if (driveInterval !== null) {
+        clearInterval(driveInterval);
+        driveInterval = null;
+    }
+
+    activeDriveCommand = null;
+    stopRover();
+}
+
 function moveForward() {
-    sendCommand({
+    startDrive({
         type: "drive",
         roverX: 512,
         roverY: 1023,
@@ -54,7 +80,7 @@ function moveForward() {
 }
 
 function moveBackward() {
-    sendCommand({
+    startDrive({
         type: "drive",
         roverX: 512,
         roverY: 0,
@@ -63,7 +89,7 @@ function moveBackward() {
 }
 
 function turnLeft() {
-    sendCommand({
+    startDrive({
         type: "drive",
         roverX: 0,
         roverY: 512,
@@ -72,7 +98,7 @@ function turnLeft() {
 }
 
 function turnRight() {
-    sendCommand({
+    startDrive({
         type: "drive",
         roverX: 1023,
         roverY: 512,

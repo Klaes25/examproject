@@ -46,7 +46,7 @@
             <h3>Live Feed</h3>
 
             <img
-                src="http://localhost:8090/video"
+                src="http://100.116.69.43:8000/stream.mjpg"
                 alt="Rover live feed"
                 style="width: 100%; max-width: 480px; border-radius: 8px;"
             >
@@ -58,26 +58,77 @@
             <p>Latest server message:</p>
             <p id="last-command">None</p>
 
-<div class="buttons">
-    <button onclick="moveForward()">Forward</button>
-    <button onclick="moveBackward()">Backward</button>
-    <button onclick="turnLeft()">Left</button>
-    <button onclick="turnRight()">Right</button>
-    <button onclick="stopRover()">Stop</button>
-    <button onclick="toggleAutonomous()">Autonomous</button>
-</div>
+            <div class="buttons">
 
-<hr>
+                <button
+                    onmousedown="moveForward()"
+                    onmouseup="stopDrive()"
+                    onmouseleave="stopDrive()"
+                >
+                    Forward
+                </button>
 
-<h3>Robot Arm</h3>
+                <button
+                    onmousedown="moveBackward()"
+                    onmouseup="stopDrive()"
+                    onmouseleave="stopDrive()"
+                >
+                    Backward
+                </button>
 
-<div class="buttons">
-    <button onclick="moveArmForward()">Arm Forward</button>
-    <button onclick="moveArmBackward()">Arm Backward</button>
-    <button onclick="moveArmLeft()">Arm Left</button>
-    <button onclick="moveArmRight()">Arm Right</button>
-    <button onclick="toggleWrist()">Wrist</button>
-</div>
+                <button
+                    onmousedown="turnLeft()"
+                    onmouseup="stopDrive()"
+                    onmouseleave="stopDrive()"
+                >
+                    Left
+                </button>
+
+                <button
+                    onmousedown="turnRight()"
+                    onmouseup="stopDrive()"
+                    onmouseleave="stopDrive()"
+                >
+                    Right
+                </button>
+
+                <button onclick="stopRover()">
+                    Stop
+                </button>
+
+                <button onclick="toggleAutonomous()">
+                    Autonomous
+                </button>
+
+            </div>
+
+            <hr>
+
+            <h3>Robot Arm</h3>
+
+            <div class="buttons">
+
+                <button onclick="moveArmForward()">
+                    Arm Forward
+                </button>
+
+                <button onclick="moveArmBackward()">
+                    Arm Backward
+                </button>
+
+                <button onclick="moveArmLeft()">
+                    Arm Left
+                </button>
+
+                <button onclick="moveArmRight()">
+                    Arm Right
+                </button>
+
+                <button onclick="toggleWrist()">
+                    Wrist
+                </button>
+
+            </div>
 
         </section>
 
