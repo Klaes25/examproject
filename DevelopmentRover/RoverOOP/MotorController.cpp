@@ -1,25 +1,13 @@
 #include "MotorController.h"
 
-MotorController::MotorController(
-  int ena, int in1, int in2,
-  int enb, int in3, int in4,
-  int maxSpeed,
-  int accelStep
-)
-  : ENA(ena),
-    IN1(in1),
-    IN2(in2),
-    ENB(enb),
-    IN3(in3),
-    IN4(in4),
-    maxSpeed(maxSpeed),
-    accelStep(accelStep) {}
+MotorController::MotorController(int ena, int in1, int in2, int enb, int in3, int in4, int maxSpeed, int accelStep)
+  : ENA(ena), IN1(in1), IN2(in2), ENB(enb), IN3(in3), IN4(in4),
+    maxSpeed(maxSpeed), accelStep(accelStep) {}
 
 void MotorController::begin() {
   pinMode(ENA, OUTPUT);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
-
   pinMode(ENB, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
@@ -34,11 +22,8 @@ void MotorController::drive(int xRaw, int yRaw, int deadzone) {
   if (abs(x) < deadzone) x = 0;
   if (abs(y) < deadzone) y = 0;
 
-  int targetLeft = y + x;
-  int targetRight = y - x;
-
-  targetLeft = constrain(targetLeft, -maxSpeed, maxSpeed);
-  targetRight = constrain(targetRight, -maxSpeed, maxSpeed);
+  int targetLeft = constrain(y + x, -maxSpeed, maxSpeed);
+  int targetRight = constrain(y - x, -maxSpeed, maxSpeed);
 
   currentLeftMotor = rampMotor(currentLeftMotor, targetLeft);
   currentRightMotor = rampMotor(currentRightMotor, targetRight);
@@ -47,41 +32,28 @@ void MotorController::drive(int xRaw, int yRaw, int deadzone) {
   setMotorB(currentRightMotor);
 }
 
-void MotorController::forward(int speedVal) {
-  speedVal = constrain(speedVal, 0, maxSpeed);
-
-  currentLeftMotor = speedVal;
-  currentRightMotor = speedVal;
-
-  setMotorA(currentLeftMotor);
-  setMotorB(currentRightMotor);
-}
-
-void MotorController::backward(int speedVal) {
-  speedVal = constrain(speedVal, 0, maxSpeed);
-  
-  currentLeftMotor = -speedVal;
-  currentRightMotor = -speedVal;
-  
-  setMotorA(currentLeftMotor);
-  setMotorB(currentRightMotor);
-}
-
-void MotorController::turnRight(int speedVal) {
-  speedVal = constrain(speedVal, 0, maxSpeed);
-
-  currentLeftMotor = speedVal;
-  currentRightMotor = -speedVal;
+void MotorController::forward(int speed) {
+  int s = constrain(speed, 0, maxSpeed);
+  currentLeftMotor = s;
+  currentRightMotor = s;
 
   setMotorA(currentLeftMotor);
   setMotorB(currentRightMotor);
 }
 
-void MotorController::turnLeft(int speedVal) {
-  speedVal = constrain(speedVal, 0, maxSpeed);
+void MotorController::turnRight(int speed) {
+  int s = constrain(speed, 0, maxSpeed);
+  currentLeftMotor = s;
+  currentRightMotor = -s;
 
-  currentLeftMotor = -speedVal;
-  currentRightMotor = speedVal;
+  setMotorA(currentLeftMotor);
+  setMotorB(currentRightMotor);
+}
+
+void MotorController::turnLeft(int speed) {
+  int s = constrain(speed, 0, maxSpeed);
+  currentLeftMotor = -s;
+  currentRightMotor = s;
 
   setMotorA(currentLeftMotor);
   setMotorB(currentRightMotor);
@@ -90,16 +62,10 @@ void MotorController::turnLeft(int speedVal) {
 int MotorController::rampMotor(int currentSpeed, int targetSpeed) {
   if (currentSpeed < targetSpeed) {
     currentSpeed += accelStep;
-
-    if (currentSpeed > targetSpeed) {
-      currentSpeed = targetSpeed;
-    }
+    if (currentSpeed > targetSpeed) currentSpeed = targetSpeed;
   } else if (currentSpeed > targetSpeed) {
     currentSpeed -= accelStep;
-
-    if (currentSpeed < targetSpeed) {
-      currentSpeed = targetSpeed;
-    }
+    if (currentSpeed < targetSpeed) currentSpeed = targetSpeed;
   }
 
   return currentSpeed;
