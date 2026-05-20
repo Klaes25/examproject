@@ -9,7 +9,7 @@ let activeArmCommand = null;
 
 function connectControlWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const wsUrl = `${protocol}://${window.location.host}/ws/control`;
+    const wsUrl = `${protocol}://${window.location.host}/rover/ws/control`;
 
     controlSocket = new WebSocket(wsUrl);
 
@@ -201,7 +201,7 @@ function toggleWrist() {
 
 async function updateRoverStatus() {
     try {
-        const response = await fetch("/api/rover/status");
+        const response = await fetch("/rover/api/rover/status");
         const data = await response.json();
 
         const statusText = data.connected
@@ -229,7 +229,7 @@ async function loginUser() {
     const password = document.getElementById("password").value;
 
     try {
-        const response = await fetch("/login", {
+        const response = await fetch("/rover/login", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
