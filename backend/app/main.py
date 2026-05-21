@@ -48,30 +48,6 @@ class LoginRequest(BaseModel):
     password: str
 
 
-def ensure_admin_user():
-    db: Session = SessionLocal()
-
-    admin_user = db.query(User).filter(
-        User.username == "admin"
-    ).first()
-
-    if not admin_user:
-        hashed_password = pwd_context.hash("admin")
-
-        new_admin = User(
-            username="admin",
-            password_hash=hashed_password
-        )
-
-        db.add(new_admin)
-        db.commit()
-
-    db.close()
-
-
-ensure_admin_user()
-
-
 @app.get("/")
 def root():
     return FileResponse("/frontend/index.html")
