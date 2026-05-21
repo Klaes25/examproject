@@ -240,6 +240,13 @@ async function updateRoverStatus() {
     }
 }
 
+async function loadSensorData() {
+    const response = await fetch("/api/sensor-data");
+    const data = await response.json();
+
+    console.log(data);
+}
+
 async function loginUser() {
     const username = document.getElementById("username").value;
 
@@ -274,6 +281,7 @@ async function loginUser() {
             connectControlWebSocket();
 
             updateRoverStatus();
+            loadSensorData();
 
             roverStatusInterval =
                 setInterval(updateRoverStatus, 3000);

@@ -71,6 +71,32 @@ def get_rover_status():
         "connected": connected,
         "seconds_since_last_seen": None if last_seen is None else round(now - last_seen, 1)
     }
+    
+@app.get("/api/sensor-data")
+def get_sensor_data():
+    db = SessionLocal()
+
+    try:
+        rows = db.execute("""
+            SELECT id, temperature, humidity, distance, created_at
+            FROM sensor_data
+            ORDER BY created_at DESC
+            LIMIT 50
+        """).fetchall()
+
+        return [
+            {
+                "id": row[0],
+                "temperature": row[1],
+                "humidity": row[2],
+                "distance": row[3],
+                "created_at": str(row[4])
+            }
+            for row in rows
+        ]
+
+    finally:
+        db.close()
 
 
 @app.post("/register")
@@ -147,13 +173,45 @@ async def websocket_control(websocket: WebSocket):
                     latest_rover_status["last_seen"] = time.time()
                     latest_rover_status["last_message"] = parsed
 
-                    print("Sensor data:", parsed)
+                    temperature = parsed.get("temperature")
+                    humidity = parsed.get("humidity")
+                    distance = parsed.get("distance")
 
-                    await websocket.send_json({
-                        "type": "ack",
-                        "message": "Server received data",
-                        "data": data
-                    })
+                    db = SessionLocal()
+
+                    try:
+                        db.execute(
+                        """
+                        INSERT INTO sensor_data (
+                            temperature,
+                            humidity,
+                            distance
+                        )
+                        VALUES (
+                            :temperature,
+                            :humidity,
+                            :distance
+                        )
+                        """,
+                        {
+                            "temperature": temperature,
+                            "humidity": humidity,
+                            "distance": distance
+                        }
+                    )
+
+                    db.commit()
+
+                finally:
+                    db.close()
+
+                print("Sensor data:", parsed)
+
+                await websocket.send_json({
+                    "type": "ack",
+                    "message": "Server received data",
+                    "data": data
+                })
 
                 elif parsed.get("type") in ["drive", "arm", "stop"]:
                     if rover_websocket is not None:

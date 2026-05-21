@@ -11,7 +11,7 @@ void RobotArm::begin() {
 
   baseServo.write(basePos);
   updateArmFromExtension();
-  wristServo.write(45);
+  wristServo.write(95);
 }
 
 void RobotArm::control(int xValue, int yValue, bool buttonState, int deadzone) {
@@ -41,8 +41,8 @@ void RobotArm::control(int xValue, int yValue, bool buttonState, int deadzone) {
   if (!lastButtonState && buttonState) {
     wristClosed = !wristClosed;
 
-    if (wristClosed) wristServo.write(0);
-    else wristServo.write(45);
+    if (wristClosed) wristServo.write(45);
+    else wristServo.write(95);
   }
 
   lastButtonState = buttonState;
