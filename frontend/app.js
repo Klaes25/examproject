@@ -244,7 +244,18 @@ async function loadSensorData() {
     const response = await fetch("/api/sensor-data");
     const data = await response.json();
 
-    console.log(data);
+    if (data.length > 0) {
+        const latest = data[0];
+
+        document.getElementById("temperature").textContent =
+            `Temperature: ${latest.temperature}`;
+
+        document.getElementById("humidity").textContent =
+            `Humidity: ${latest.humidity}`;
+
+        document.getElementById("distance").textContent =
+            `Distance: ${latest.distance}`;
+    }
 }
 
 async function loginUser() {

@@ -163,6 +163,37 @@ async def websocket_control(websocket: WebSocket):
                     latest_rover_status["last_seen"] = time.time()
                     latest_rover_status["last_message"] = parsed
 
+                    db = SessionLocal()
+
+                    try:
+                        db.execute(
+                            """
+                            INSERT INTO logs (
+                                level,
+                                source,
+                                message
+                            )
+                            VALUES (
+                                :level,
+                                :source,
+                                :message
+                            )
+                            """,
+                            {
+                                "level": "INFO",
+                                "source": "rover",
+                                "message": (
+                                    f"Rover status update: "
+                                    f"status={parsed.get('status')}, "
+                                    f"device={parsed.get('device')}"
+                                )
+                            }
+                        )
+                        db.commit()
+
+                    finally:
+                        db.close()
+
                     await websocket.send_json({
                         "type": "ack",
                         "message": "Server received data",
@@ -181,37 +212,36 @@ async def websocket_control(websocket: WebSocket):
 
                     try:
                         db.execute(
-                        """
-                        INSERT INTO sensor_data (
-                            temperature,
-                            humidity,
-                            distance
+                            """
+                            INSERT INTO sensor_data (
+                                temperature,
+                                humidity,
+                                distance
+                            )
+                            VALUES (
+                                :temperature,
+                                :humidity,
+                                :distance
+                            )
+                            """,
+                            {
+                                "temperature": temperature,
+                                "humidity": humidity,
+                                "distance": distance
+                            }
                         )
-                        VALUES (
-                            :temperature,
-                            :humidity,
-                            :distance
-                        )
-                        """,
-                        {
-                            "temperature": temperature,
-                            "humidity": humidity,
-                            "distance": distance
-                        }
-                    )
+                        db.commit()
 
-                    db.commit()
+                    finally:
+                        db.close()
 
-                finally:
-                    db.close()
+                    print("Sensor data:", parsed)
 
-                print("Sensor data:", parsed)
-
-                await websocket.send_json({
-                    "type": "ack",
-                    "message": "Server received data",
-                    "data": data
-                })
+                    await websocket.send_json({
+                        "type": "ack",
+                        "message": "Server received data",
+                        "data": data
+                    })
 
                 elif parsed.get("type") in ["drive", "arm", "stop"]:
                     if rover_websocket is not None:
