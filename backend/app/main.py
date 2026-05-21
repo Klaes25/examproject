@@ -11,11 +11,14 @@ from app.database import SessionLocal, engine
 from app.models import Base, User
 
 import json
+import secrets
 import time
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+active_tokens = set()
 
 latest_rover_status = {
     "connected": False,
@@ -93,15 +96,26 @@ def login(data: LoginRequest):
 
     db.close()
 
+    token = secrets.token_urlsafe(32)
+    active_tokens.add(token)
+
     return {
         "message": "Login successful",
-        "username": data.username
+        "username": data.username,
+        "token": token
     }
 
 
 @app.websocket("/ws/control")
 async def websocket_control(websocket: WebSocket):
     global rover_websocket
+
+    token = websocket.query_params.get("token")
+
+    if token not in active_tokens:
+        await websocket.close(code=1008)
+        print("Rejected WebSocket connection without valid token")
+        return
 
     await websocket.accept()
     print("Client connected to /ws/control")

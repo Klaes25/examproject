@@ -7,9 +7,13 @@ let activeDriveCommand = null;
 let armInterval = null;
 let activeArmCommand = null;
 
+let authToken = null;
+
 function connectControlWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const wsUrl = `${protocol}://${window.location.host}/rover/ws/control`;
+
+    const wsUrl =
+        `${protocol}://${window.location.host}/rover/ws/control?token=${authToken}`;
 
     controlSocket = new WebSocket(wsUrl);
 
@@ -23,8 +27,10 @@ function connectControlWebSocket() {
 
         try {
             const data = JSON.parse(event.data);
+
             document.getElementById("last-command").textContent =
                 JSON.stringify(data, null, 2);
+
         } catch {
             document.getElementById("last-command").textContent = event.data;
         }
@@ -32,12 +38,15 @@ function connectControlWebSocket() {
 
     controlSocket.onclose = function () {
         console.log("Control WebSocket disconnected");
-        document.getElementById("ws-status").textContent = "WebSocket: disconnected";
+        document.getElementById("ws-status").textContent =
+            "WebSocket: disconnected";
     };
 
     controlSocket.onerror = function (error) {
         console.error("WebSocket error:", error);
-        document.getElementById("ws-status").textContent = "WebSocket: error";
+
+        document.getElementById("ws-status").textContent =
+            "WebSocket: error";
     };
 }
 
@@ -45,6 +54,7 @@ function sendCommand(command) {
     if (!controlSocket || controlSocket.readyState !== WebSocket.OPEN) {
         document.getElementById("last-command").textContent =
             "WebSocket is not connected";
+
         return;
     }
 
@@ -53,6 +63,7 @@ function sendCommand(command) {
 
 function startDrive(command) {
     activeDriveCommand = command;
+
     sendCommand(activeDriveCommand);
 
     if (driveInterval !== null) {
@@ -71,11 +82,13 @@ function stopDrive() {
     }
 
     activeDriveCommand = null;
+
     stopRover();
 }
 
 function startArm(command) {
     activeArmCommand = command;
+
     sendCommand(activeArmCommand);
 
     if (armInterval !== null) {
@@ -202,6 +215,7 @@ function toggleWrist() {
 async function updateRoverStatus() {
     try {
         const response = await fetch("/rover/api/rover/status");
+
         const data = await response.json();
 
         const statusText = data.connected
@@ -209,6 +223,7 @@ async function updateRoverStatus() {
             : "Rover: OFFLINE";
 
         document.getElementById("rover-status").textContent = statusText;
+
         document.getElementById("rover-device").textContent =
             `Device: ${data.device || "unknown"}`;
 
@@ -219,6 +234,7 @@ async function updateRoverStatus() {
 
     } catch (error) {
         console.error(error);
+
         document.getElementById("rover-status").textContent =
             "Rover: status API error";
     }
@@ -226,14 +242,17 @@ async function updateRoverStatus() {
 
 async function loginUser() {
     const username = document.getElementById("username").value;
+
     const password = document.getElementById("password").value;
 
     try {
         const response = await fetch("/rover/login", {
             method: "POST",
+
             headers: {
                 "Content-Type": "application/json"
             },
+
             body: JSON.stringify({
                 username,
                 password
@@ -243,23 +262,30 @@ async function loginUser() {
         const data = await response.json();
 
         if (response.ok) {
+            authToken = data.token;
+
             document.getElementById("message").textContent =
                 "Login successful";
 
             document.getElementById("login-card").classList.add("hidden");
+
             document.getElementById("dashboard").classList.remove("hidden");
 
             connectControlWebSocket();
+
             updateRoverStatus();
 
-            roverStatusInterval = setInterval(updateRoverStatus, 3000);
+            roverStatusInterval =
+                setInterval(updateRoverStatus, 3000);
 
         } else {
-            document.getElementById("message").textContent = data.detail;
+            document.getElementById("message").textContent =
+                data.detail;
         }
 
     } catch (error) {
         console.error(error);
+
         document.getElementById("message").textContent =
             "Connection error";
     }
