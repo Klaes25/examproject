@@ -10,6 +10,8 @@ from communication.server_client import ServerClient
 from communication.command_handler import CommandHandler
 from communication.arduino_serial import ArduinoSerial
 
+from vision.frame_processor import FrameProcessor
+
 
 def main():
     sensor_db.init_db()
@@ -28,7 +30,7 @@ def main():
         on_command=command_handler.handle_command
     )
     server.connect()
-    
+
     print("[INFO] starting camera...")
     camera = CameraManager(resolution=(320, 240), framerate=32).start()
 
@@ -37,17 +39,25 @@ def main():
     print("[INFO] starting video stream...")
     stream = VideoStream(camera, port=8000).start()
 
+    # Initialize the object detection model
+    processor = FrameProcessor(
+        detect_colors=["red", "green", "blue", "yellow"],
+        detect_objects=True
+    )
+
     print("[INFO] running. press CTRL+C to stop.")
 
     try:
+        # Continuously capture images from the camera and run inference
         while True:
             frame = camera.get_frame()
 
             if frame is None:
                 continue
 
-            # vision modules go here later
-            
+            annotated, results = processor.process(frame)
+            camera.frame = annotated
+
             temperature = arduino.get_temperature()
             distance = arduino.get_distance_cm()
 
