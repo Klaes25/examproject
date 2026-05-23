@@ -6,11 +6,13 @@ from pydantic import BaseModel
 
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.database import SessionLocal, engine
 from app.models import Base, User
 
 import json
+import os
 import secrets
 import time
 
@@ -19,6 +21,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 active_tokens = set()
+ROVER_TOKEN = os.getenv("ROVER_TOKEN")
 
 latest_rover_status = {
     "connected": False,
@@ -61,10 +64,11 @@ def get_rover_status():
     now = time.time()
     last_seen = latest_rover_status["last_seen"]
 
-    connected = False
-
-    if last_seen is not None and now - last_seen < 15:
-        connected = True
+    connected = (
+        rover_websocket is not None
+        and last_seen is not None
+        and now - last_seen < 15
+    )
 
     return {
         **latest_rover_status,
@@ -77,12 +81,12 @@ def get_sensor_data():
     db = SessionLocal()
 
     try:
-        rows = db.execute("""
+        rows = db.execute(text("""
             SELECT id, temperature, humidity, distance, created_at
             FROM sensor_data
             ORDER BY created_at DESC
             LIMIT 50
-        """).fetchall()
+        """)).fetchall()
 
         return [
             {
@@ -140,136 +144,246 @@ async def websocket_control(websocket: WebSocket):
 
     if token not in active_tokens:
         await websocket.close(code=1008)
-        print("Rejected WebSocket connection without valid token")
+        print("Rejected browser WebSocket connection without valid user token")
         return
 
     await websocket.accept()
-    print("Client connected to /ws/control")
+    print("Browser/operator connected to /ws/control")
 
     try:
         while True:
             data = await websocket.receive_text()
-            print(f"Data received: {data}")
+            print(f"Control data received: {data}")
 
             try:
                 parsed = json.loads(data)
+            except json.JSONDecodeError:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "Invalid JSON"
+                })
+                continue
 
-                if parsed.get("type") == "status":
-                    rover_websocket = websocket
+            message_type = parsed.get("type")
 
-                    latest_rover_status["connected"] = True
-                    latest_rover_status["status"] = parsed.get("status")
-                    latest_rover_status["device"] = parsed.get("device")
-                    latest_rover_status["last_seen"] = time.time()
-                    latest_rover_status["last_message"] = parsed
-
-                    db = SessionLocal()
-
-                    try:
-                        db.execute(
-                            """
-                            INSERT INTO logs (
-                                level,
-                                source,
-                                message
-                            )
-                            VALUES (
-                                :level,
-                                :source,
-                                :message
-                            )
-                            """,
-                            {
-                                "level": "INFO",
-                                "source": "rover",
-                                "message": (
-                                    f"Rover status update: "
-                                    f"status={parsed.get('status')}, "
-                                    f"device={parsed.get('device')}"
-                                )
-                            }
-                        )
-                        db.commit()
-
-                    finally:
-                        db.close()
-
-                    await websocket.send_json({
-                        "type": "ack",
-                        "message": "Server received data",
-                        "data": data
-                    })
-
-                elif parsed.get("type") == "sensor_data":
-                    latest_rover_status["last_seen"] = time.time()
-                    latest_rover_status["last_message"] = parsed
-
-                    temperature = parsed.get("temperature")
-                    humidity = parsed.get("humidity")
-                    distance = parsed.get("distance")
-
-                    db = SessionLocal()
-
-                    try:
-                        db.execute(
-                            """
-                            INSERT INTO sensor_data (
-                                temperature,
-                                humidity,
-                                distance
-                            )
-                            VALUES (
-                                :temperature,
-                                :humidity,
-                                :distance
-                            )
-                            """,
-                            {
-                                "temperature": temperature,
-                                "humidity": humidity,
-                                "distance": distance
-                            }
-                        )
-                        db.commit()
-
-                    finally:
-                        db.close()
-
-                    print("Sensor data:", parsed)
-
-                    await websocket.send_json({
-                        "type": "ack",
-                        "message": "Server received data",
-                        "data": data
-                    })
-
-                elif parsed.get("type") in ["drive", "arm", "stop"]:
-                    if rover_websocket is not None:
-                        await rover_websocket.send_json(parsed)
-
-                        await websocket.send_json({
-                            "type": "ack",
-                            "message": "Server received data",
-                            "data": data
-                        })
-                    else:
-                        await websocket.send_json({
-                            "type": "error",
-                            "message": "No rover connected"
-                        })
-
-                else:
+            if message_type in ["drive", "arm", "stop"]:
+                if rover_websocket is None:
                     await websocket.send_json({
                         "type": "error",
-                        "message": "Unknown message type",
+                        "message": "No rover connected"
+                    })
+                    continue
+
+                try:
+                    await rover_websocket.send_json(parsed)
+                    await websocket.send_json({
+                        "type": "ack",
+                        "message": "Command forwarded to rover",
                         "data": parsed
                     })
+                except Exception as error:
+                    print(f"Failed to forward command to rover: {error}")
+                    rover_websocket = None
+                    latest_rover_status["connected"] = False
+                    latest_rover_status["status"] = "offline"
 
-            except json.JSONDecodeError:
-                pass
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Failed to forward command to rover"
+                    })
+
+            else:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "Control endpoint only accepts drive, arm and stop messages",
+                    "data": parsed
+                })
 
     except WebSocketDisconnect:
-        print("Client disconnected from /ws/control")
+        print("Browser/operator disconnected from /ws/control")
+
+
+async def handle_rover_message(websocket: WebSocket, parsed: dict, raw_data: str):
+    message_type = parsed.get("type")
+
+    if message_type == "status":
+        latest_rover_status["connected"] = True
+        latest_rover_status["status"] = parsed.get("status")
+        latest_rover_status["device"] = parsed.get("device")
+        latest_rover_status["last_seen"] = time.time()
+        latest_rover_status["last_message"] = parsed
+
+        db = SessionLocal()
+
+        try:
+            db.execute(
+                text("""
+                INSERT INTO logs (
+                    level,
+                    source,
+                    message
+                )
+                VALUES (
+                    :level,
+                    :source,
+                    :message
+                )
+                """),
+                {
+                    "level": "INFO",
+                    "source": "rover",
+                    "message": (
+                        f"Rover status update: "
+                        f"status={parsed.get('status')}, "
+                        f"device={parsed.get('device')}"
+                    )
+                }
+            )
+            db.commit()
+
+        finally:
+            db.close()
+
+        await websocket.send_json({
+            "type": "ack",
+            "message": "Server received rover status",
+            "data": parsed
+        })
+
+    elif message_type == "sensor_data":
+        latest_rover_status["connected"] = True
+        latest_rover_status["last_seen"] = time.time()
+        latest_rover_status["last_message"] = parsed
+
+        temperature = parsed.get("temperature")
+        humidity = parsed.get("humidity")
+        distance = parsed.get("distance")
+
+        db = SessionLocal()
+
+        try:
+            db.execute(
+                text("""
+                INSERT INTO sensor_data (
+                    temperature,
+                    humidity,
+                    distance
+                )
+                VALUES (
+                    :temperature,
+                    :humidity,
+                    :distance
+                )
+                """),
+                {
+                    "temperature": temperature,
+                    "humidity": humidity,
+                    "distance": distance
+                }
+            )
+            db.commit()
+
+        finally:
+            db.close()
+
+        print("Sensor data:", parsed)
+
+        await websocket.send_json({
+            "type": "ack",
+            "message": "Server received sensor data",
+            "data": parsed
+        })
+
+    elif message_type == "detection":
+        latest_rover_status["connected"] = True
+        latest_rover_status["last_seen"] = time.time()
+        latest_rover_status["last_message"] = parsed
+
+        db = SessionLocal()
+
+        try:
+            db.execute(
+                text("""
+                INSERT INTO detections (
+                    object_name,
+                    color,
+                    confidence,
+                    image_path
+                )
+                VALUES (
+                    :object_name,
+                    :color,
+                    :confidence,
+                    :image_path
+                )
+                """),
+                {
+                    "object_name": parsed.get("object") or parsed.get("object_name"),
+                    "color": parsed.get("color"),
+                    "confidence": parsed.get("confidence"),
+                    "image_path": parsed.get("image_path")
+                }
+            )
+            db.commit()
+
+        finally:
+            db.close()
+
+        print("Detection data:", parsed)
+
+        await websocket.send_json({
+            "type": "ack",
+            "message": "Server received detection data",
+            "data": parsed
+        })
+
+    else:
+        await websocket.send_json({
+            "type": "error",
+            "message": "Unknown rover message type",
+            "data": parsed
+        })
+
+
+@app.websocket("/ws/rover")
+async def websocket_rover(websocket: WebSocket):
+    global rover_websocket
+
+    token = websocket.query_params.get("token")
+
+    if not ROVER_TOKEN or token != ROVER_TOKEN:
+        await websocket.close(code=1008)
+        print("Rejected rover WebSocket connection without valid rover token")
+        return
+
+    await websocket.accept()
+    rover_websocket = websocket
+
+    latest_rover_status["connected"] = True
+    latest_rover_status["status"] = "online"
+    latest_rover_status["device"] = "raspberry_pi_rover"
+    latest_rover_status["last_seen"] = time.time()
+
+    print("Rover connected to /ws/rover")
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            print(f"Rover data received: {data}")
+
+            try:
+                parsed = json.loads(data)
+            except json.JSONDecodeError:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "Invalid JSON"
+                })
+                continue
+
+            await handle_rover_message(websocket, parsed, data)
+
+    except WebSocketDisconnect:
+        print("Rover disconnected from /ws/rover")
 
         if websocket == rover_websocket:
             rover_websocket = None

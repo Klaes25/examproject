@@ -1,14 +1,19 @@
-# Public IP address or domain name of your server
-SERVER_IP = "100.116.69.43"
+import os
 
-# Port exposed by docker-compose
-SERVER_PORT = 18765
+# Server address used by the Raspberry Pi.
+# For local/server testing this should point to the nginx entrypoint, not the backend container port.
+SERVER_IP = os.getenv("SERVER_IP", "100.116.69.43")
+SERVER_PORT = int(os.getenv("SERVER_PORT", "50325"))
 
-# WebSocket endpoint implemented in FastAPI
-SERVER_WS_PATH = "/ws/control"
+# Rover-specific WebSocket endpoint through nginx.
+SERVER_WS_PATH = os.getenv("SERVER_WS_PATH", "/rover/ws/rover")
+
+# Rover token must be set on the Raspberry Pi environment.
+# Do not hardcode the real token in Git.
+ROVER_TOKEN = os.getenv("ROVER_TOKEN", "change-me")
 
 # Full WebSocket URL used by server_client.py
-SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}{SERVER_WS_PATH}"
+SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}{SERVER_WS_PATH}?token={ROVER_TOKEN}"
 
 # Serial port to the Arduino Uno
 ARDUINO_PORT = "/dev/ttyACM0"
