@@ -62,14 +62,19 @@ def main():
             camera.frame = annotated
             
             if results:
-               for result in results:
+                if isinstance(results, dict):
+                    results = [results]
+
+                for result in results:
                     server.send_detection(
                         detected_object=result.get("object"),
                         color=result.get("color"),
                         confidence=result.get("confidence")
                     )
+                    
 
             temperature = arduino.get_temperature()
+            humidity = arduino.get_humidity()
             distance = arduino.get_distance_cm()
 
             if temperature is not None:
