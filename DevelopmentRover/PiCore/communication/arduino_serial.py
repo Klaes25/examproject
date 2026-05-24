@@ -69,31 +69,33 @@ class ArduinoSerial:
         return self.ser.is_open
 
     # send a command to the arduino
+        # send a command to the arduino
     def send_command(self, packet):
-    if not self.is_connected():
-        print("Warning: Tried to send command but Arduino is not connected.")
-        return False
 
-    try:
-        message = (
-            f"CONTROL:"
-            f"{packet['roverX']},"
-            f"{packet['roverY']},"
-            f"{int(packet['roverSW'])},"
-            f"{packet['armX']},"
-            f"{packet['armY']},"
-            f"{int(packet['armSW'])}\n"
-        )
+        if not self.is_connected():
+            print("Warning: Tried to send command but Arduino is not connected.")
+            return False
 
-        with self.lock:
-            self.ser.write(message.encode())
+        try:
+            message = (
+                f"CONTROL:"
+                f"{packet['roverX']},"
+                f"{packet['roverY']},"
+                f"{int(packet['roverSW'])},"
+                f"{packet['armX']},"
+                f"{packet['armY']},"
+                f"{int(packet['armSW'])}\n"
+            )
 
-        print(f"Sent to Arduino: {message.strip()}")
-        return True
+            with self.lock:
+                self.ser.write(message.encode())
 
-    except Exception as e:
-        print(f"Send error: {e}")
-        return False
+            print(f"Sent to Arduino: {message.strip()}")
+            return True
+
+        except Exception as e:
+            print(f"Send error: {e}")
+            return False
 
     # this runs in a thread and reads lines from arduino constantly
     def read_loop(self):
