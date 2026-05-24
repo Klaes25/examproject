@@ -13,6 +13,7 @@ private:
   unsigned long interval;
 
   float temperatureC = 0;
+  float humidity = 0;
 
 public:
   TemperatureSensor(uint8_t pin, uint8_t type, unsigned long interval);
@@ -22,6 +23,7 @@ public:
   void update();
 
   float getTemperature();
+  float getHumidity();
 };
 
 #endif

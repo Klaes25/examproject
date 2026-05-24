@@ -163,3 +163,15 @@ class ArduinoSerial:
 
         except:
             return None
+        
+    def get_humidity(self):
+        val = self.get_sensor("HUM")
+
+        if val == None:
+            return None
+
+        try:
+            return float(val)
+
+        except:
+            return None

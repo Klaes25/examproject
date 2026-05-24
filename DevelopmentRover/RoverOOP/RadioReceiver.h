@@ -18,6 +18,7 @@ struct ControlPacket {
 
 struct SensorPacket {
   float temperatureC;
+  float humidity;
 };
 
 class RadioReceiver : public Component {

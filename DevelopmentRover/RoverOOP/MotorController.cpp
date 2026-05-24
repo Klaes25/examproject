@@ -38,6 +38,8 @@ void MotorController::drive(int xRaw, int yRaw, int deadzone) {
   if (abs(x) < deadzone) x = 0;
   if (abs(y) < deadzone) y = 0;
 
+  x = x * 0.4;  //reduce turning speed by 60%
+
   int targetLeft = constrain(y + x, -maxSpeed, maxSpeed);
   int targetRight = constrain(y - x, -maxSpeed, maxSpeed);
 

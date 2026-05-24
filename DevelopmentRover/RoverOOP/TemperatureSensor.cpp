@@ -14,13 +14,22 @@ void TemperatureSensor::update() {
     lastReadTime = millis();
 
     float t = dht.readTemperature();
+    float h = dht.readHumidity();
 
     if (!isnan(t)) {
       temperatureC = t;
+    }
+    
+    if (!isnan(h)) {
+      humidity = h;
     }
   }
 }
 
 float TemperatureSensor::getTemperature() {
   return temperatureC;
+}
+
+float TemperatureSensor::getHumidity() {
+  return humidity;
 }

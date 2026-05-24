@@ -12,7 +12,7 @@ RadioReceiver radio(A2, A1, address);
 
 // Motor settings
 const int MAX_SPEED = 255;
-const int ACCEL_STEP = 32;
+const int ACCEL_STEP = 20;
 
 const int DEADZONE_ROVER = 80;
 const int DEADZONE_ARM = 80;
@@ -102,6 +102,7 @@ void loop() {
   ultrasonic.update();
 
   sensorData.temperatureC = temperatureSensor.getTemperature();
+  sensorData.humidity = temperatureSensor.getHumidity();
 
   if (radio.available()) {
     radio.readData();

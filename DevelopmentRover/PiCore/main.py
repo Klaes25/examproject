@@ -56,7 +56,18 @@ def main():
                 continue
 
             annotated, results = processor.process(frame)
+            
+            print(results)
+            
             camera.frame = annotated
+            
+            if results:
+               for result in results:
+                    server.send_detection(
+                        detected_object=result.get("object"),
+                        color=result.get("color"),
+                        confidence=result.get("confidence")
+                    )
 
             temperature = arduino.get_temperature()
             distance = arduino.get_distance_cm()
@@ -69,7 +80,7 @@ def main():
 
             server.send_sensor_data(
                 temperature=temperature,
-                humidity=None,
+                humidity=humidity,
                 distance=distance
             )
 
