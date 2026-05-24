@@ -295,47 +295,53 @@ async def handle_rover_message(websocket: WebSocket, parsed: dict, raw_data: str
         })
 
     elif message_type == "detection":
-        latest_rover_status["connected"] = True
-        latest_rover_status["last_seen"] = time.time()
-        latest_rover_status["last_message"] = parsed
+        
+        object_name = parsed.get("object")
 
-        db = SessionLocal()
+        if object_name is None:
+            print("Detection ignored: object missing")
+        else:
+            latest_rover_status["connected"] = True
+            latest_rover_status["last_seen"] = time.time()
+            latest_rover_status["last_message"] = parsed
 
-        try:
-            db.execute(
-                text("""
-                INSERT INTO detections (
-                    object_name,
-                    color,
-                    confidence,
-                    image_path
+            db = SessionLocal()
+
+            try:
+                db.execute(
+                    text("""
+                    INSERT INTO detections (
+                        object_name,
+                        color,
+                        confidence,
+                        image_path
+                    )
+                    VALUES (
+                        :object_name,
+                        :color,
+                        :confidence,
+                        :image_path
+                    )
+                    """),
+                    {
+                        "object_name": parsed.get("object") or parsed.get("object_name"),
+                        "color": parsed.get("color"),
+                        "confidence": parsed.get("confidence"),
+                        "image_path": parsed.get("image_path")
+                    }
                 )
-                VALUES (
-                    :object_name,
-                    :color,
-                    :confidence,
-                    :image_path
-                )
-                """),
-                {
-                    "object_name": parsed.get("object") or parsed.get("object_name"),
-                    "color": parsed.get("color"),
-                    "confidence": parsed.get("confidence"),
-                    "image_path": parsed.get("image_path")
-                }
-            )
-            db.commit()
+                db.commit()
 
-        finally:
-            db.close()
+            finally:
+                db.close()
 
-        print("Detection data:", parsed)
+            print("Detection data:", parsed)
 
-        await websocket.send_json({
-            "type": "ack",
-            "message": "Server received detection data",
-            "data": parsed
-        })
+            await websocket.send_json({
+                "type": "ack",
+                "message": "Server received detection data",
+                "data": parsed
+            })
 
     else:
         await websocket.send_json({

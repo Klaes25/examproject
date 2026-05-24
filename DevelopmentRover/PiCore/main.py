@@ -66,11 +66,16 @@ def main():
                     results = [results]
 
                 for result in results:
-                    server.send_detection(
-                        detected_object=result.get("object"),
-                        color=result.get("color"),
-                        confidence=result.get("confidence")
-                    )
+                    detected_object = result.get("object")
+                    color = result.get("color")
+                    confidence = result.get("confidence")
+
+                    if detected_object is not None:
+                        server.send_detection(
+                            detected_object=detected_object,
+                            color=color,
+                            confidence=confidence
+                        )
                     
 
             temperature = arduino.get_temperature()
