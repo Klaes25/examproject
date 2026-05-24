@@ -258,6 +258,22 @@ async function loadSensorData() {
     }
 }
 
+async function loadDetections() {
+    const response = await fetch("/api/detections");
+    const data = await response.json();
+
+    const box = document.getElementById("detections");
+
+    if (data.length === 0) {
+        box.textContent = "No detections yet";
+        return;
+    }
+
+    box.innerHTML = data.map(item =>
+        `${item.object_name} - ${item.color || "unknown color"} - ${item.confidence}`
+    ).join("<br>");
+}
+
 async function loginUser() {
     const username = document.getElementById("username").value;
 
@@ -293,9 +309,12 @@ async function loginUser() {
 
             updateRoverStatus();
             loadSensorData();
+            loadDetections();
 
-            roverStatusInterval =
-                setInterval(updateRoverStatus, 3000);
+            roverStatusInterval = setInterval(updateRoverStatus, 3000);
+            
+            setInterval(loadSensorData, 3000);
+            setInterval(loadDetections, 3000);
 
         } else {
             document.getElementById("message").textContent =
