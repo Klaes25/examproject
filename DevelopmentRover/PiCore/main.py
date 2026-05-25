@@ -46,6 +46,9 @@ def main():
     )
 
     print("[INFO] running. press CTRL+C to stop.")
+    
+    last_detection_times = {}
+    DETECTION_COOLDOWN = 10
 
     try:
         # Continuously capture images from the camera and run inference
@@ -84,13 +87,29 @@ def main():
                 first_object = detected_objects[0]
                 first_color = detected_colors[0]["color"] if detected_colors else None
 
-                server.send_detection(
-                    detected_object=first_object.get("label"),
-                    color=first_color,
-                    confidence=first_object.get("score")
-                )
+                detected_object = first_object.get("label")
+                confidence = first_object.get("score")
 
-            time.sleep(2)
+                current_time = time.time()
+
+                if detected_object is not None:
+                    last_time = last_detection_times.get(detected_object, 0)
+ 
+                    is_new_detection = (
+                        current_time - last_time > DETECTION_COOLDOWN
+                    )
+
+                    if is_new_detection:
+                        server.send_detection(
+                            detected_object=detected_object,
+                            color=first_color,
+                            confidence=confidence
+                        )
+
+                        last_detection = detected_object
+                        last_detection_time = current_time
+        
+                time.sleep(2)
 
     except KeyboardInterrupt:
         print("[INFO] stopping...")
