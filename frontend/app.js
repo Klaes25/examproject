@@ -282,9 +282,13 @@ async function loadDetections() {
             return;
         }
 
-        box.innerHTML = data.map(item =>
-            `${item.object_name} - ${item.color || "unknown color"} - ${item.confidence}`
-        ).join("<br>");
+        box.innerHTML = data.slice(0, 3).map(item => {
+            const timestamp = item.created_at || "unknown time";
+            const color = item.color || "unknown color";
+            const confidence = item.confidence ?? "null";
+
+            return `${timestamp} - ${item.object_name} - ${color} - ${confidence}`;
+        }).join("<br>");
     } catch (error) {
         console.error("Failed to load detections:", error);
 
