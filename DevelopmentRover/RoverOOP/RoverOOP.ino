@@ -101,8 +101,23 @@ void loop() {
   temperatureSensor.update();
   ultrasonic.update();
 
-  sensorData.temperatureC = temperatureSensor.getTemperature();
-  sensorData.humidity = temperatureSensor.getHumidity();
+sensorData.temperatureC = temperatureSensor.getTemperature();
+sensorData.humidity = temperatureSensor.getHumidity();
+
+static unsigned long lastPrint = 0;
+
+if (millis() - lastPrint > 2000) {
+    lastPrint = millis();
+
+    Serial.print("SENSOR:TEMP:");
+    Serial.println(sensorData.temperatureC);
+
+    Serial.print("SENSOR:HUM:");
+    Serial.println(sensorData.humidity);
+
+    Serial.print("SENSOR:DIST:");
+    Serial.println(ultrasonic.getDistanceCm());
+  }
 
   if (radio.available()) {
     radio.readData();
