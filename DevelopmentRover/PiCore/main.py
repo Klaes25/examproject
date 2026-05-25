@@ -61,23 +61,6 @@ def main():
             
             camera.frame = annotated
             
-            if results:
-                if isinstance(results, dict):
-                    results = [results]
-
-                for result in results:
-                    detected_object = result.get("object")
-                    color = result.get("color")
-                    confidence = result.get("confidence")
-
-                    if detected_object is not None:
-                        server.send_detection(
-                            detected_object=detected_object,
-                            color=color,
-                            confidence=confidence
-                        )
-                    
-
             temperature = arduino.get_temperature()
             humidity = arduino.get_humidity()
             distance = arduino.get_distance_cm()
@@ -93,6 +76,19 @@ def main():
                 humidity=humidity,
                 distance=distance
             )
+
+            detected_objects = results.get("objects", [])
+            detected_colors = results.get("colors", [])
+
+            if detected_objects:
+                first_object = detected_objects[0]
+                first_color = detected_colors[0]["color"] if detected_colors else None
+
+                server.send_detection(
+                    detected_object=first_object.get("label"),
+                    color=first_color,
+                    confidence=first_object.get("score")
+                )
 
             time.sleep(2)
 

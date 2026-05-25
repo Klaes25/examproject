@@ -241,37 +241,58 @@ async function updateRoverStatus() {
 }
 
 async function loadSensorData() {
-    const response = await fetch("/api/sensor-data");
-    const data = await response.json();
+    try {
+        const response = await fetch("/rover/api/sensor-data");
 
-    if (data.length > 0) {
-        const latest = data[0];
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
 
-        document.getElementById("temperature").textContent =
-            `Temperature: ${latest.temperature}`;
+        const data = await response.json();
+        const latest = data[0] || {};
 
-        document.getElementById("humidity").textContent =
-            `Humidity: ${latest.humidity}`;
+        const temperature = latest.temperature ?? "--";
+        const humidity = latest.humidity ?? "--";
+        const distance = latest.distance ?? "--";
 
-        document.getElementById("distance").textContent =
-            `Distance: ${latest.distance}`;
+        document.getElementById("sensor-data").textContent =
+            `Temperature: ${temperature} | Humidity: ${humidity} | Distance: ${distance}`;
+    } catch (error) {
+        console.error("Failed to load sensor data:", error);
+
+        document.getElementById("sensor-data").textContent =
+            "Temperature: -- | Humidity: -- | Distance: --";
     }
 }
 
 async function loadDetections() {
-    const response = await fetch("/api/detections");
-    const data = await response.json();
+    try {
+        const response = await fetch("/rover/api/detections");
 
-    const box = document.getElementById("detections");
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
 
-    if (data.length === 0) {
-        box.textContent = "No detections yet";
-        return;
+        const data = await response.json();
+
+        const box = document.getElementById("detections");
+
+        if (data.length === 0) {
+            box.textContent = "No detections yet";
+            return;
+        }
+
+        box.innerHTML = data.map(item =>
+            `${item.object_name} - ${item.color || "unknown color"} - ${item.confidence}`
+        ).join("<br>");
+    } catch (error) {
+        console.error("Failed to load detections:", error);
+
+        const box = document.getElementById("detections");
+        if (box) {
+            box.textContent = "Could not load detections";
+        }
     }
-
-    box.innerHTML = data.map(item =>
-        `${item.object_name} - ${item.color || "unknown color"} - ${item.confidence}`
-    ).join("<br>");
 }
 
 async function loginUser() {

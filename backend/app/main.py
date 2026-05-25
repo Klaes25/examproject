@@ -75,7 +75,7 @@ def get_rover_status():
         "connected": connected,
         "seconds_since_last_seen": None if last_seen is None else round(now - last_seen, 1)
     }
-    
+
 @app.get("/api/sensor-data")
 def get_sensor_data():
     db = SessionLocal()
@@ -95,6 +95,35 @@ def get_sensor_data():
                 "humidity": row[2],
                 "distance": row[3],
                 "created_at": str(row[4])
+            }
+            for row in rows
+        ]
+
+    finally:
+        db.close()
+
+
+
+@app.get("/api/detections")
+def get_detections():
+    db = SessionLocal()
+
+    try:
+        rows = db.execute(text("""
+            SELECT id, object_name, color, confidence, image_path, created_at
+            FROM detections
+            ORDER BY created_at DESC
+            LIMIT 20
+        """)).fetchall()
+
+        return [
+            {
+                "id": row[0],
+                "object_name": row[1],
+                "color": row[2],
+                "confidence": row[3],
+                "image_path": row[4],
+                "created_at": str(row[5])
             }
             for row in rows
         ]
@@ -295,11 +324,17 @@ async def handle_rover_message(websocket: WebSocket, parsed: dict, raw_data: str
         })
 
     elif message_type == "detection":
-        
-        object_name = parsed.get("object")
+
+        object_name = parsed.get("object") or parsed.get("object_name")
 
         if object_name is None:
             print("Detection ignored: object missing")
+            await websocket.send_json({
+                "type": "error",
+                "message": "Detection ignored: object missing",
+                "data": parsed
+            })
+
         else:
             latest_rover_status["connected"] = True
             latest_rover_status["last_seen"] = time.time()
@@ -324,7 +359,7 @@ async def handle_rover_message(websocket: WebSocket, parsed: dict, raw_data: str
                     )
                     """),
                     {
-                        "object_name": parsed.get("object") or parsed.get("object_name"),
+                        "object_name": object_name,
                         "color": parsed.get("color"),
                         "confidence": parsed.get("confidence"),
                         "image_path": parsed.get("image_path")
@@ -349,7 +384,6 @@ async def handle_rover_message(websocket: WebSocket, parsed: dict, raw_data: str
             "message": "Unknown rover message type",
             "data": parsed
         })
-
 
 @app.websocket("/ws/rover")
 async def websocket_rover(websocket: WebSocket):
