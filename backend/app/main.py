@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -22,6 +22,17 @@ app = FastAPI()
 
 active_tokens = set()
 ROVER_TOKEN = os.getenv("ROVER_TOKEN")
+
+
+def require_user_token(authorization: str | None = Header(default=None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing authentication token")
+
+    token = authorization.replace("Bearer ", "", 1).strip()
+
+    if token not in active_tokens:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+
 
 latest_rover_status = {
     "connected": False,
@@ -77,7 +88,7 @@ def get_rover_status():
     }
 
 @app.get("/api/sensor-data")
-def get_sensor_data():
+def get_sensor_data(_: None = Depends(require_user_token)):
     db = SessionLocal()
 
     try:
@@ -105,7 +116,7 @@ def get_sensor_data():
 
 
 @app.get("/api/detections")
-def get_detections():
+def get_detections(_: None = Depends(require_user_token)):
     db = SessionLocal()
 
     try:

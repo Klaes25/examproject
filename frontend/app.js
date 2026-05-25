@@ -242,7 +242,11 @@ async function updateRoverStatus() {
 
 async function loadSensorData() {
     try {
-        const response = await fetch("/rover/api/sensor-data");
+        const response = await fetch("/rover/api/sensor-data", {
+            headers: {
+                "Authorization": `Bearer ${authToken}`
+            }
+        });
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -267,7 +271,11 @@ async function loadSensorData() {
 
 async function loadDetections() {
     try {
-        const response = await fetch("/rover/api/detections");
+        const response = await fetch("/rover/api/detections", {
+            headers: {
+                "Authorization": `Bearer ${authToken}`
+            }
+        });
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
