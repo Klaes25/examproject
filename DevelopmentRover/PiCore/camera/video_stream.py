@@ -79,7 +79,7 @@ class VideoStream:
             frame = self.camera.get_frame()
             if frame is None:
                 continue
-            jpeg = simplejpeg.encode_jpeg(frame, quality=self.quality, colorspace='BGR')
+            jpeg = simplejpeg.encode_jpeg(frame, quality=self.quality, colorspace='RGB')
             self._output.write(jpeg)
 
     def _serve(self):
