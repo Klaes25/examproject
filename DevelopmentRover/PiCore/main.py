@@ -49,6 +49,10 @@ def main():
     
     last_detection_times = {}
     DETECTION_COOLDOWN = 10
+    
+    # Log sensordata til databasen every 5 min
+    last_sensor_log = 0
+    SENSOR_LOG_INTERVAL = 300  
 
     try:
         # Continuously capture images from the camera and run inference
@@ -68,9 +72,13 @@ def main():
             humidity = arduino.get_humidity()
             distance = arduino.get_distance_cm()
 
-            if temperature is not None:
+            if (
+               temperature is not None
+               and current_time - last_sensor_log >= SENSOR_LOG_INTERVAL
+            ):
                 try:
                     sensor_db.log_temperature(temperature)
+                    last_sensor_log = current_time
                 except Exception as e:
                     print(f"[WARNING] Failed to log temperature: {e}")
 

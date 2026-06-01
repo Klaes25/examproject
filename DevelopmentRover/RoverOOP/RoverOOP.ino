@@ -43,7 +43,8 @@ bool autonomousMode = false;
 bool lastRoverButtonState = false;
 
 SensorPacket sensorData;
-
+//ENA, IN1, IN2
+//ENB, IN3, IN4
 MotorController motors(
   5, 7, 4,
   6, 3, 2,
