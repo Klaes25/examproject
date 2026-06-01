@@ -149,7 +149,7 @@ class ArduinoSerial:
             return None
 
         try:
-            return int(val)
+            return float(val)
 
         except:
             return None

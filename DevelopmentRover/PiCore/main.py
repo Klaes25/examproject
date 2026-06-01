@@ -54,6 +54,9 @@ def main():
     last_sensor_log = 0
     SENSOR_LOG_INTERVAL = 300  
 
+    last_color_detection_sent = 0
+    color_detection_interval = 5
+
     try:
         # Continuously capture images from the camera and run inference
         while True:
@@ -98,6 +101,7 @@ def main():
                 detected_object = first_object.get("label")
                 confidence = first_object.get("score")
 
+<<<<<<< Updated upstream
                 current_time = time.time()
 
                 if detected_object is not None:
@@ -118,6 +122,30 @@ def main():
                         last_detection_time = current_time
         
                 time.sleep(2)
+=======
+            elif detected_colors and time.time() - last_color_detection_sent >= color_detection_interval:
+                first_color = max(
+                    detected_colors,
+                    key=lambda item: item.get("area", 0)
+                )
+
+                server.send_detection(
+                    detected_object="color_detection",
+                    color=first_color.get("color"),
+                    confidence=None
+                )
+
+                last_color_detection_sent = time.time()
+
+            elif detected_colors:
+                first_color = detected_colors[0]
+
+                server.send_detection(
+                    confidence=None
+                )
+
+            time.sleep(2)
+>>>>>>> Stashed changes
 
     except KeyboardInterrupt:
         print("[INFO] stopping...")

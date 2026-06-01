@@ -25,7 +25,7 @@ MIN_CONTOUR_AREA = 500
 
 def detect(frame_rgb, colors=None):
     # converts an image from one color space to another
-    hsv = cv.cvtColor(frame_rgb, cv.COLOR_RGB2HSV)
+    hsv = cv.cvtColor(frame_rgb, cv.COLOR_BGR2HSV)
 
     targets = colors if colors else list(COLOR_RANGES.keys())
     results = []
