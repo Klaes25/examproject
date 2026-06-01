@@ -14,6 +14,8 @@
 
 import os
 
+import cv2
+
 from tflite_support.task import core
 from tflite_support.task import processor
 from tflite_support.task import vision
@@ -33,9 +35,8 @@ class ObjectDetector:
             base_options=base_options, detection_options=detection_options)
         self.detector = vision.ObjectDetector.create_from_options(options)
 
-    def detect(self, frame_rgb):
-        # Create a TensorImage object from the RGB image.
-        input_tensor = vision.TensorImage.create_from_array(frame_rgb)
+    def detect(self, frame_bgr):
+        input_tensor = vision.TensorImage.create_from_array(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB))
 
         # Run object detection estimation using the model.
         detection_result = self.detector.detect(input_tensor)

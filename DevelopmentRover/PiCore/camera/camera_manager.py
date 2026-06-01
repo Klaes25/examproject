@@ -7,7 +7,7 @@ class CameraManager:
     def __init__(self, resolution=(320, 240), framerate=32):
         self.camera = Picamera2()
         config = self.camera.create_video_configuration(
-            main={"size": resolution, "format": "RGB888"},
+            main={"size": resolution, "format": "BGR888"},
             controls={"FrameRate": framerate}
         )
         self.camera.configure(config)
