@@ -36,6 +36,9 @@ const unsigned long ULTRASONIC_INTERVAL = 80;
 // Safety
 const unsigned long SIGNAL_TIMEOUT = 500;
 
+// 90-degree turn timing (kalibreres)
+const unsigned long TURN_90_TIME = 600;
+
 unsigned long lastReceiveTime = 0;
 unsigned long autoStateStartTime = 0;
 
@@ -81,6 +84,16 @@ enum AutoState {
 
 AutoState autoState = AUTO_FORWARD;
 
+// 90-degree turn state machine
+enum TurnState {
+  TURN_IDLE,
+  TURN_RIGHT_90,
+  TURN_LEFT_90
+};
+
+TurnState turnState = TURN_IDLE;
+unsigned long turnStateStartTime = 0;
+
 void setup() {
   Serial.begin(9600);
   Serial.setTimeout(20);
@@ -102,12 +115,12 @@ void loop() {
   temperatureSensor.update();
   ultrasonic.update();
 
-sensorData.temperatureC = temperatureSensor.getTemperature();
-sensorData.humidity = temperatureSensor.getHumidity();
+  sensorData.temperatureC = temperatureSensor.getTemperature();
+  sensorData.humidity = temperatureSensor.getHumidity();
 
-static unsigned long lastPrint = 0;
+  static unsigned long lastPrint = 0;
 
-if (millis() - lastPrint > 2000) {
+  if (millis() - lastPrint > 2000) {
     lastPrint = millis();
 
     Serial.print("SENSOR:TEMP:");
@@ -138,7 +151,7 @@ if (millis() - lastPrint > 2000) {
 
     lastRoverButtonState = radio.data.roverSW;
 
-    if (!autonomousMode) {
+    if (!autonomousMode && !isTurning()) {
       motors.drive(
         radio.data.roverX,
         radio.data.roverY,
@@ -156,6 +169,8 @@ if (millis() - lastPrint > 2000) {
 
     radio.sendSensorData(sensorData);
   }
+
+  updateTurn90();
 
   if (autonomousMode) {
     runAutonomousMode();
@@ -232,6 +247,48 @@ void runAutonomousMode() {
   }
 }
 
+// ---- 90-degree turn state machine ----
+
+void startTurn90Right() {
+  turnState = TURN_RIGHT_90;
+  turnStateStartTime = millis();
+}
+
+void startTurn90Left() {
+  turnState = TURN_LEFT_90;
+  turnStateStartTime = millis();
+}
+
+bool isTurning() {
+  return turnState != TURN_IDLE;
+}
+
+void updateTurn90() {
+  unsigned long now = millis();
+
+  switch (turnState) {
+    case TURN_IDLE:
+      // ingenting - ikke i gang med at dreje
+      break;
+
+    case TURN_RIGHT_90:
+      motors.turnRight(TURN_SPEED);
+      if (now - turnStateStartTime >= TURN_90_TIME) {
+        motors.stop();
+        turnState = TURN_IDLE;
+      }
+      break;
+
+    case TURN_LEFT_90:
+      motors.turnLeft(TURN_SPEED);
+      if (now - turnStateStartTime >= TURN_90_TIME) {
+        motors.stop();
+        turnState = TURN_IDLE;
+      }
+      break;
+  }
+}
+
 void readSerialControl() {
   if (Serial.available()) {
     String line = Serial.readStringUntil('\n');
@@ -272,8 +329,8 @@ void readSerialControl() {
 
         lastRoverButtonState = serialRoverSW;
 
-        // Manual drive only when autonomous mode is OFF
-        if (!autonomousMode) {
+        // Manual drive only when autonomous mode is OFF and not turning
+        if (!autonomousMode && !isTurning()) {
           motors.drive(values[0], values[1], DEADZONE_ROVER);
         }
 
