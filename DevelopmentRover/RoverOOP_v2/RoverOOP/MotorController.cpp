@@ -171,3 +171,27 @@ void MotorController::stop() {
   analogWrite(ENA, 0);
   analogWrite(ENB, 0);
 }
+
+void MotorController::curveLeft(int speed, int correction) {
+  int fast = constrain(speed, 0, maxSpeed);
+  int slow = constrain(speed - correction, 0, maxSpeed);
+
+  // Negative is physically forward on this rover
+  currentLeftMotor = -slow;
+  currentRightMotor = -fast;
+
+  setMotorA(currentLeftMotor);
+  setMotorB(currentRightMotor);
+}
+
+void MotorController::curveRight(int speed, int correction) {
+  int fast = constrain(speed, 0, maxSpeed);
+  int slow = constrain(speed - correction, 0, maxSpeed);
+
+  // Negative is physically forward on this rover
+  currentLeftMotor = -fast;
+  currentRightMotor = -slow;
+
+  setMotorA(currentLeftMotor);
+  setMotorB(currentRightMotor);
+}
