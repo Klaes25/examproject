@@ -40,6 +40,9 @@ public:
   void turnRight(int speed);
   void turnLeft(int speed);
 
+  void curveLeft(int speed, int correction);
+  void curveRight(int speed, int correction);
+
   void stop();
 };
 
